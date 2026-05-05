@@ -118,13 +118,26 @@ TW_maneuver = (CD0 .* q_turn ./ WS_vec) + ...
 %% -------------------------
 % 4) Takeoff constraint (optional)
 % -------------------------
+% Professor's method (lecture slide):
+%   C_L_TO  = 0.8 * CLmax
+%   V_TO    = sqrt(2*(W/S) / (C_L_TO * rho))    → V_TO² = 2(W/S)/(rho*C_L_TO)
+%   V_eval  = 0.7 * V_TO   → q_eval = 0.49 * (W/S) / C_L_TO
+%   a_mean  = g*[T/W - 0.49*CD0/C_L_TO - F_C]   (alpha=0, L≈0 at ground roll speed)
+%   S_G     = V_TO² / (2*a_mean)
+%
+%   Rearranging for T/W:
+%   T/W = (W/S)/(g*rho*C_L_TO*S_G) + 0.49*CD0/C_L_TO + F_C
 if use_takeoff
-    sigma_takeoff = rho_takeoff / rho_sl;    % [-]
-    CL_takeoff    = 1.20;                    % [-] first-pass RC takeoff CL
-    TW_takeoff    = WS_vec ./ (TOP_m .* sigma_takeoff .* CL_takeoff);
+    g_sl          = 9.81;                          % [m/s^2]
+    sigma_takeoff = rho_takeoff / rho_sl;          % [-]
+    CL_takeoff    = 0.8 * CLmax;                   % [-] C_L_TO = 0.8*CLmax (lecture)
+    F_rolling     = 0.03;                          % [-] rolling friction coefficient
+    TW_takeoff    = WS_vec ./ (g_sl .* rho_takeoff .* CL_takeoff .* TOP_m) + ...
+                    0.49 .* CD0 ./ CL_takeoff + F_rolling;
 else
     sigma_takeoff = NaN;
     CL_takeoff    = NaN;
+    F_rolling     = NaN;
     TW_takeoff    = zeros(size(WS_vec));
 end
 
@@ -355,7 +368,8 @@ fprintf('Governing constraint= %s\n', governingConstraint);
 
 if use_takeoff
     fprintf('Takeoff sigma       = %8.4f\n', sigma_takeoff);
-    fprintf('CL_takeoff          = %8.4f\n', CL_takeoff);
+    fprintf('CL_takeoff (0.8*CLmax)= %8.4f\n', CL_takeoff);
+    fprintf('F_rolling           = %8.4f\n', F_rolling);
 end
 
 if use_ceiling
