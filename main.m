@@ -1968,6 +1968,7 @@ end
 
 fprintf('====================================================================\n\n');
 %% ============= LANDING GEAR CONFIGURATION (FINAL) ==============
+%%sara
 
 x_cg = xcg_total;     % [m] aircraft CG location from nose
 z_cg = zcg_total;     % [m] CG height from ground
