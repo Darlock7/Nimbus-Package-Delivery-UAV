@@ -3,7 +3,7 @@ function plotTwistFunction(twistOut)
 %
 % Plots spanwise geometric twist distribution.
 
-    figure;
+    figure('Name','Spanwise Twist Distribution','NumberTitle','off');
     plot(twistOut.eta, twistOut.twist_deg, 'LineWidth', 2);
     grid on;
     xlabel('\eta = y / (b/2)');

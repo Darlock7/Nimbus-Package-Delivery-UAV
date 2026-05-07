@@ -116,14 +116,14 @@ if usePrelimModel
     fprintf('Current limit = %.3f A\n', I_max);
     fprintf('============================================================\n\n');
 
-    figure('Name', sprintf('Propulsion Analysis - %s', propName), 'Color', 'w');
+    figure('Name', sprintf('Thrust vs Speed — %s', propName), 'NumberTitle', 'off', 'Color', 'w');
     plot(V_vec, T_vec_N, 'LineWidth', 2);
     grid on; box on;
     xlabel('Flight Speed V_{\infty} [m/s]');
     ylabel('Thrust T [N]');
     title(sprintf('Thrust vs Flight Speed - %s', propName), 'Interpreter', 'none');
 
-    figure('Name', sprintf('Current Draw - %s', propName), 'Color', 'w');
+    figure('Name', sprintf('Current Draw — %s', propName), 'NumberTitle', 'off', 'Color', 'w');
     plot(V_vec, I_vec_A, 'LineWidth', 2); hold on;
     yline(I_max, '--', 'LineWidth', 1.5);
     grid on; box on;
@@ -285,14 +285,14 @@ fprintf('Computed static current = %.3f A\n', propOut.I_static_A);
 fprintf('Current limit = %.3f A\n', I_max);
 fprintf('============================================================\n\n');
 
-figure('Name', sprintf('Propulsion Analysis - %s', propName), 'Color', 'w');
+figure('Name', sprintf('Thrust vs Speed — %s', propName), 'NumberTitle', 'off', 'Color', 'w');
 plot(V_vec, T_vec_N, 'LineWidth', 2);
 grid on; box on;
 xlabel('Flight Speed V_{\infty} [m/s]');
 ylabel('Thrust T [N]');
 title(sprintf('Thrust vs Flight Speed - %s', propName), 'Interpreter', 'none');
 
-figure('Name', sprintf('Current Draw - %s', propName), 'Color', 'w');
+figure('Name', sprintf('Current Draw — %s', propName), 'NumberTitle', 'off', 'Color', 'w');
 plot(V_vec, I_vec_A, 'LineWidth', 2); hold on;
 yline(I_max, '--', 'LineWidth', 1.5);
 grid on; box on;

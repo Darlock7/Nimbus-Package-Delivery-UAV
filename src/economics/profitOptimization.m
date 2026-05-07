@@ -220,7 +220,7 @@ function optOut = profitOptimization(optIn)
     % ---- convergence plots ----
     gens = [history.gen];
 
-    figure('Name','Profit Optimization Convergence');
+    figure('Name','Profit Optimization Convergence','NumberTitle','off');
 
     subplot(3,1,1);
     plot(gens, [history.J_hr], 'b-', 'LineWidth', 2);

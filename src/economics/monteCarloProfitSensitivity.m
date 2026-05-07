@@ -170,25 +170,25 @@ function mcOut = monteCarloProfitSensitivity(mcIn)
     if ~mcIn.showPlots; return; end
 
     % ---- Figure 1: Profit surface — Payload Volume vs Weight ----
-    figure('Name','MC: Profit Surface — Payload Volume vs Weight');
+    figure('Name','MC: Profit Surface — Payload Volume vs Weight','NumberTitle','off');
     plotTradeoffSurface(validData.Vp_m3*1000, validData.Wp_N, validData.J_hr, 25, ...
         'Payload Volume V_p [L]', 'Payload Weight W_p [N]', 'Profit J [$/hr]', ...
         'MC Profit Surface: Volume vs Weight');
 
     % ---- Figure 2: Profit surface — L/D vs Cruise Speed ----
-    figure('Name','MC: Profit Surface — L/D vs Speed');
+    figure('Name','MC: Profit Surface — L/D vs Speed','NumberTitle','off');
     plotTradeoffSurface(validData.LD, validData.V_mps, validData.J_hr, 25, ...
         'Lift-to-Drag Ratio L/D [-]', 'Cruise Speed V [m/s]', 'Profit J [$/hr]', ...
         'MC Profit Surface: L/D vs Speed');
 
     % ---- Figure 3: 3D surface — Volume vs Speed ----
-    figure('Name','MC: 3D Surface — Payload Volume vs Speed');
+    figure('Name','MC: 3D Surface — Payload Volume vs Speed','NumberTitle','off');
     plotSmoothedSurface(validData.Vp_m3*1000, validData.V_mps, validData.J_hr, 25, ...
         'Payload Volume V_p [L]', 'Cruise Speed V [m/s]', 'Profit J [$/hr]', ...
         'MC Smoothed Surface: Volume vs Speed');
 
     % ---- Figure 4: Tornado chart (global sensitivity) ----
-    figure('Name','MC: Global Sensitivity (Pearson Correlation)');
+    figure('Name','MC: Global Sensitivity (Pearson Correlation)','NumberTitle','off');
     barh(sensitivityTable.CorrWithProfit, 'FaceColor', [0.2 0.5 0.8]);
     set(gca, 'YTick', 1:height(sensitivityTable), 'YTickLabel', sensitivityTable.Variable);
     xlabel('Pearson Correlation with Profit J'); ylabel('Design Variable');

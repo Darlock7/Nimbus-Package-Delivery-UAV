@@ -136,16 +136,17 @@ alpha_stall_deg = aL0_avg + CLmax_3D / CLalpha_3D;
 if plotFigures
     % ---------- Drag build-up ----------
     if useDragBuildUp
-        figure('Name','Drag Build-Up');
+        figure('Name','Drag Build-Up','NumberTitle','off');
         bar([CD0_wing, CD0_fuse, CD0_fin]);
         set(gca, 'XTickLabel', {'Wing','Body','Fins'});
-        ylabel('C_{D0} contribution [-]');
+        xlabel('Drag component');
+        ylabel('C_{D0} contribution  [-]');
         title('Parasite Drag Build-Up');
         grid on;
     end
 
     % ---------- CL vs alpha ----------
-    figure('Name','Aircraft C_L vs alpha');
+    figure('Name','Lift Curve (CL vs Alpha)','NumberTitle','off');
     plot(alpha_deg, CL, 'k', 'LineWidth', 2); hold on;
     plot(alpha_cruise_deg, CL_cruise, 'o', 'LineWidth', 1.5, 'MarkerSize', 8);
     grid on;
@@ -167,7 +168,7 @@ if plotFigures
         'Location', 'best');
 
     % ---------- CL vs CD ----------
-    figure('Name','Aircraft C_L vs C_D');
+    figure('Name','Drag Polar (CL vs CD)','NumberTitle','off');
     plot(CD, CL, 'k', 'LineWidth', 2); hold on;
     plot(CD_cruise, CL_cruise, '^', 'LineWidth', 1.5, 'MarkerSize', 8);
 
@@ -198,7 +199,7 @@ if plotFigures
         'Location', 'best');
 
     % ---------- L/D vs alpha ----------
-    figure('Name','Aircraft L/D vs alpha');
+    figure('Name','Lift-to-Drag vs Alpha','NumberTitle','off');
     plot(alpha_deg, LD, 'k', 'LineWidth', 2); hold on;
     plot(alpha_cruise_deg, LD_cruise, 'o', 'LineWidth', 1.5, 'MarkerSize', 8);
     grid on;

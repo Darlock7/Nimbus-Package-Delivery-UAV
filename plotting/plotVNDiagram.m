@@ -141,8 +141,9 @@ end
     plot(Vneg*speedScale, n_neg_limit, 'o', 'MarkerSize', 4, 'MarkerFaceColor', ptColor, 'MarkerEdgeColor', 'k');
     plot(Vd*speedScale, n_neg_limit, 'o', 'MarkerSize', 4, 'MarkerFaceColor', ptColor, 'MarkerEdgeColor', 'k');
 
+    title('V-n Diagram (Maneuver Envelope)');
     xlabel(speedLabel);
-    ylabel('Load Factor n');
+    ylabel('Load Factor n  [-]');
     xlim([0, 1.08*Vd*speedScale]);
     ylim([n_neg_limit - 0.3, n_pos_limit + 0.3]);
 

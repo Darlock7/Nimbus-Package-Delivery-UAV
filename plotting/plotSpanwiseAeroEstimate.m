@@ -4,7 +4,7 @@ function plotSpanwiseAeroEstimate(spanOut)
 % Plots key first-pass spanwise aerodynamic quantities.
 
     %% -------- Local chord --------
-    figure;
+    figure('Name','Spanwise Chord Distribution','NumberTitle','off');
     plot(spanOut.eta, spanOut.c_m, 'LineWidth', 2);
     grid on;
     xlabel('\eta = y / (b/2)');
@@ -12,7 +12,7 @@ function plotSpanwiseAeroEstimate(spanOut)
     title('Spanwise Chord Distribution');
 
     %% -------- Effective alpha --------
-    figure;
+    figure('Name','Spanwise Effective Angle of Attack','NumberTitle','off');
     plot(spanOut.eta, spanOut.alpha_eff_deg, 'LineWidth', 2);
     grid on;
     xlabel('\eta = y / (b/2)');
@@ -20,7 +20,7 @@ function plotSpanwiseAeroEstimate(spanOut)
     title('Spanwise Effective Angle of Attack');
 
     %% -------- Local section cl --------
-    figure;
+    figure('Name','Spanwise Section Lift Coefficient','NumberTitle','off');
     plot(spanOut.eta, spanOut.cl_local, 'LineWidth', 2);
     grid on;
     xlabel('\eta = y / (b/2)');
@@ -28,7 +28,7 @@ function plotSpanwiseAeroEstimate(spanOut)
     title('Spanwise Section Lift Coefficient');
 
     %% -------- Lift per unit span --------
-    figure;
+    figure('Name','Spanwise Lift per Unit Span','NumberTitle','off');
     plot(spanOut.eta, spanOut.Lprime_N_per_m, 'LineWidth', 2);
     grid on;
     xlabel('\eta = y / (b/2)');
@@ -36,7 +36,7 @@ function plotSpanwiseAeroEstimate(spanOut)
     title('Spanwise Lift per Unit Span');
 
     %% -------- Local Cm0 --------
-    figure;
+    figure('Name','Spanwise Zero-Lift Pitching Moment','NumberTitle','off');
     plot(spanOut.eta, spanOut.cm0_local, 'LineWidth', 2);
     grid on;
     xlabel('\eta = y / (b/2)');

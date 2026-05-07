@@ -257,7 +257,7 @@ idx_descent     = s_total > s_desc_start & s_total <= s_touchdown;
 %% =========================
 %   3D PLOT
 %% =========================
-fig3D = figure('Color','w');
+fig3D = figure('Name','Mission Profile (3D)','NumberTitle','off','Color','w');
 hold on;
 grid on;
 
@@ -353,7 +353,7 @@ legend([hGroundProj, hGroundRoll, hClimb, hCruise, hDescent, hTakeoff, hLanding,
 %% =========================
 %   2D ALTITUDE VS TIME (SIMPLE)
 %% =========================
-fig2D = figure('Color','w');
+fig2D = figure('Name','Altitude vs Time','NumberTitle','off','Color','w');
 hold on;
 
 % clean single mission profile curve
@@ -382,6 +382,7 @@ text(t(round(0.08*length(t))), h_cruise + 0.04*max(h_cruise,1), ...
     sprintf('h_{cruise} = %.0f m', h_cruise), ...
     'HorizontalAlignment','left');
 
+title('Altitude vs Time');
 xlabel('Time [s]');
 ylabel('Altitude [m]');
 

@@ -992,7 +992,7 @@ function plot_mode(~, t, vec, lam, stateNames, modeName, isComplex)
     end
     tt = t(:);
 
-    figure('Color','w','Name', modeName);
+    figure('Color','w','Name', modeName,'NumberTitle','off');
     plot(tt, y, 'LineWidth', 1.25);
     grid on;
     xlabel('t (s)');

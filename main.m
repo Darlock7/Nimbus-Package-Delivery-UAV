@@ -236,6 +236,36 @@ fprintf('Cargo Cross-Section Area                 = %.6f m^2\n', cargoOut.area_m
 fprintf('Cargo Bay Volume                          = %.6f m^3\n', cargoOut.volume_m3);
 fprintf('----------------------------------------------------------\n\n');
 
+%% ============== Cargo Door Deployment Analysis ===========
+% 2-D source panel method — finds minimum door angle for package deployment.
+% Uses MH95 fuselage side-view cross-section at cruise conditions.
+doorIn = struct();
+doorIn.airfoilFile    = cargoAirfoilFile;
+doorIn.Lf_m           = Lf;
+doorIn.Wf_m           = Wf;
+doorIn.V_cruise_mps   = V_cruise;
+doorIn.rho_kgm3       = roh;
+doorIn.alpha_deg      = 0;               % fuselage AoA [deg] — 0 = level cruise
+
+% Volume package is an empty cardboard box sized to the cargo bay.
+% Mass estimated from box surface area × single-wall corrugated surface weight (0.55 kg/m²).
+A_box_m2       = 2 * (cargoOut.width_m * cargoOut.height_m + ...
+                      cargoOut.width_m * Wf + ...
+                      cargoOut.height_m * Wf);
+m_vol_pkg_kg   = A_box_m2 * 0.55;       % [kg] cardboard box mass only
+fprintf('Volume package (cardboard box): surface area = %.4f m²,  mass ≈ %.1f g\n', ...
+    A_box_m2, m_vol_pkg_kg * 1000);
+
+doorIn.m_package_kg   = m_vol_pkg_kg;   % [kg] volume package (NOT the weight package)
+doorIn.package_h_m    = cargoOut.height_m;   % [m]  package height = cargo bay height
+doorIn.door_xfrac     = 0.65;           % [-]  door hinge at 65% chord (aft cargo bay)
+doorIn.door_length_m  = cargoOut.width_m;    % [m]  door = fore-aft extent of cargo bay
+doorIn.door_angles_deg = 5:5:90;        % [deg]  sweep from barely open to fully open
+doorIn.Npanels        = 200;
+doorIn.showPlot       = showPlots;
+
+doorOut = doorDeploymentCFD(doorIn);
+
 %% ============== Energy Calculation ===========
 fprintf('================ Energy Calculation ======================\n');
 
@@ -1968,62 +1998,24 @@ end
 
 fprintf('====================================================================\n\n');
 %% ============= LANDING GEAR CONFIGURATION (FINAL) ==============
-%%sara
 
-x_cg = xcg_total;     % [m] aircraft CG location from nose
-z_cg = zcg_total;     % [m] CG height from ground
+x_cg    = massOut.cg_m(1);   % [m] aircraft CG x-location (from nose)
+L_aircraft = Lf;              % [m] overall aircraft length
+b       = wingOut.b_m;        % [m] wingspan
+W_total = Wg;                 % [N] gross weight
 
-L_aircraft = Lf;      % [m] overall aircraft length
-b = wingOut.b;        % [m] wingspan
-
-W_total = Wg;         % [N] gross weight
-
-rotationAngle_deg = 12;   % [deg] desired takeoff rotation angle
-noseLoadFraction  = 0.12; % 8-15% typical nose wheel load
-
-clearanceMargin = 0.03;   % [m] tail clearance margin
-
-
-x_cg = xcg_total;     % [m] aircraft CG location from nose
-z_cg = zcg_total;     % [m] CG height from ground
-
-L_aircraft = Lf;      % [m] overall aircraft length
-b = wingOut.b;        % [m] wingspan
-
-W_total = Wg;         % [N] gross weight
-
-rotationAngle_deg = 12;   % [deg] desired takeoff rotation angle
-noseLoadFraction  = 0.12; % 8-15% typical nose wheel load
-
-clearanceMargin = 0.03;   % [m] tail clearance margin
+rotationAngle_deg = 12;       % [deg] desired takeoff rotation angle
+noseLoadFraction  = 0.12;     % [-]  8–15% typical nose wheel load fraction
+clearanceMargin   = 0.03;     % [m]  tail clearance margin
 
 %% ---- MAIN GEAR LOCATION ----
 
-% Main gear slightly behind CG
-x_main = x_cg + 0.03 * L_aircraft;
+x_main = x_cg + 0.03 * L_aircraft;   % slightly behind CG
 
 %% ---- NOSE GEAR LOCATION ----
 
-% Using static equilibrium:
-% Nose load fraction determines wheelbase
-
 wheelbase = (x_main - x_cg) / noseLoadFraction;
-
-x_nose = x_main - wheelbase;
-
-%% ---- MAIN GEAR LOCATION ----
-
-% Main gear slightly behind CG
-x_main = x_cg + 0.03 * L_aircraft;
-
-%% ---- NOSE GEAR LOCATION ----
-
-% Using static equilibrium:
-% Nose load fraction determines wheelbase
-
-wheelbase = (x_main - x_cg) / noseLoadFraction;
-
-x_nose = x_main - wheelbase;
+x_nose    = x_main - wheelbase;
 %% ---- MAIN GEAR TRACK WIDTH ----
 
 % Simple stability estimate
@@ -2124,7 +2116,7 @@ end
 fprintf('=======================================================================\n\n');
 
 % ---- figure ----
-figure('Name','Profit vs Payload Weight (Actual Physics)');
+figure('Name','Profit vs Payload Weight','NumberTitle','off');
 subplot(3,1,1);
 plot(Wp_g_sweep, J_sweep*3600, 'b-', 'LineWidth', 2); hold on;
 plot(Wp_g_con, J_con*3600, 'gs', 'MarkerSize', 9, 'MarkerFaceColor', 'g');

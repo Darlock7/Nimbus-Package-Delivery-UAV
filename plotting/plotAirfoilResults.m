@@ -37,7 +37,7 @@ function plotAirfoilResults(airfoilOut)
     legend(['Root: ' root.name], ['Tip: ' tip.name], 'Location','Best');
 
     %% -------- L/D vs alpha --------
-    figure;
+    figure('Name','Airfoil L/D Ratio (Root & Tip)','NumberTitle','off');
     LD_root = root.CL ./ root.CD;
     LD_tip  = tip.CL  ./ tip.CD;
 
@@ -50,7 +50,7 @@ function plotAirfoilResults(airfoilOut)
     legend(['Root: ' root.name], ['Tip: ' tip.name], 'Location','Best');
 
     %% -------- Drag Polar (CD vs CL) --------
-    figure;
+    figure('Name','Airfoil Drag Polar (Root & Tip)','NumberTitle','off');
     plot(root.CD, root.CL, 'LineWidth',2); hold on;
     plot(tip.CD,  tip.CL,  'LineWidth',2);
     grid on;

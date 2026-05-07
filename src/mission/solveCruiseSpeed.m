@@ -134,7 +134,7 @@ T_cr  = interp1(V_vec, T_vec, V_cruise, 'linear', 'extrap');
 LD_cr = CL_cr / CD_cr;
 
 if plotFigure
-    figure('Name','Cruise Speed Solve');
+    figure('Name','Cruise Speed Solve','NumberTitle','off');
     plot(V_vec, T_vec, 'LineWidth', 2); hold on;
     plot(V_vec, D_vec, 'LineWidth', 2);
     xline(Vmin_cruise, '--', 'LineWidth', 1.0);

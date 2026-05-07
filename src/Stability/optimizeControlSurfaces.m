@@ -192,13 +192,13 @@ function csOptOut = optimizeControlSurfaces(csOptIn)
     % convergence plot
     gens   = [history.gen];
     R_hist = [history.R_min_m];
-    figure('Name','Control Surface Optimization Convergence');
+    figure('Name','Control Surface Optimization Convergence','NumberTitle','off');
     subplot(2,1,1);
     plot(gens, [history.JBest], 'b-', 'LineWidth', 2);
     ylabel('Objective J'); xlabel('Generation'); title('CMA-ES Convergence'); grid on;
     subplot(2,1,2);
     plot(gens, R_hist, 'r-', 'LineWidth', 2);
-    ylabel('Min turn radius [m]'); xlabel('Generation'); grid on;
+    ylabel('Min turn radius [m]'); xlabel('Generation'); title('Minimum Turn Radius'); grid on;
 
     csOptOut.xBest   = xBest;
     csOptOut.JBest   = JBest;

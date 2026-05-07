@@ -152,7 +152,7 @@ function cargoOut = cargoBayGeometry(cargoIn)
     
     % Plot if requested
     if isfield(cargoIn, 'showPlot') && cargoIn.showPlot
-        figure('Name', 'Cargo Bay Cross-Section');
+        figure('Name', 'Cargo Bay Cross-Section', 'NumberTitle', 'off');
         hold on;
         
         % Plot airfoil

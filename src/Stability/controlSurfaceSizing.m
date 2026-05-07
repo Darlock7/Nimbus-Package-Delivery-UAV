@@ -185,7 +185,7 @@ function csOut = controlSurfaceSizing(csIn)
 
     % ---- turn radius plot ----
     if csIn.showPlots
-        figure('Name','Turn Performance');
+        figure('Name','Turn Performance','NumberTitle','off');
         idx = isfinite(R_arr);
         plot(phi_arr(idx), R_arr(idx), 'b-', 'LineWidth', 2); hold on;
         plot(phi_max_deg, R_min_m, 'ro', 'MarkerSize', 10, 'MarkerFaceColor','r');
