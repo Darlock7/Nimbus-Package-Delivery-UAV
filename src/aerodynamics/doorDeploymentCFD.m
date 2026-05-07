@@ -184,27 +184,30 @@ Vt = B * sigma + Vt_inf;               % [m/s]
 % Pressure coefficient
 Cp = 1 - (Vt / V_inf).^2;             % [-]
 
-%% ── 8. Find Cp at door x-location (lower surface) ─────────────────────────
-% Door hinge x-position
+%% ── 8. Find Cp at door hinge location (symmetric clamshell — both surfaces) ──
 x_door_hinge = door_xfrac * Lf;
 
-% Identify lower-surface panels (ny < 0 means normal points downward → lower surface)
+% Separate lower-surface (ny < 0) and upper-surface (ny >= 0) panels
 is_lower = ny < 0;
+is_upper = ny >= 0;
 
-% Among lower-surface panels, find the one nearest to the door hinge
-x_lower = xm(is_lower);
-Cp_lower = Cp(is_lower);
+x_lower  = xm(is_lower);    Cp_lower = Cp(is_lower);
+x_upper  = xm(is_upper);    Cp_upper = Cp(is_upper);
 
 if isempty(x_lower)
     error('doorDeploymentCFD: no lower-surface panels found. Check panel orientation.');
 end
 
-[~, idx_door] = min(abs(x_lower - x_door_hinge));
-Cp_at_door    = Cp_lower(idx_door);
-x_door_actual = x_lower(idx_door);
+% Both doors (upper and lower) open symmetrically. Use the maximum Cp from
+% either surface at the hinge x — this is the worst-case back-pressure estimate.
+[~, idx_lo]   = min(abs(x_lower - x_door_hinge));
+[~, idx_up]   = min(abs(x_upper - x_door_hinge));
+Cp_at_door    = max(Cp_lower(idx_lo), Cp_upper(idx_up));
+x_door_actual = x_lower(idx_lo);
 
 %% ── 9. Door angle sweep — force balance ────────────────────────────────────
-% Door area exposed to external flow (3-D: door length × fuselage width)
+% Package bottom face area (fore-aft length × fuselage width) — the face that
+% sees back-pressure as the package drops through the clamshell opening.
 A_door = door_L * Wf;                  % [m^2]
 
 % Aerodynamic model:
@@ -228,14 +231,15 @@ F_back_N   = Cp_eff .* q_inf .* A_door;  % [N]  positive = resists deployment
 deploys_aero = W_pkg > F_back_N;
 
 %% ── 10. Geometric deployment condition ──────────────────────────────────────
-% Minimum door angle for the package to physically clear the gap
-% Gap height (perpendicular to fuselage): door_L × sin(θ)  must exceed pkg_h
-if pkg_h >= door_L
-    warning('doorDeploymentCFD: package height (%.3f m) >= door length (%.3f m). Check geometry.', ...
-        pkg_h, door_L);
+% Symmetric clamshell: lower door swings down door_L·sin(θ), upper door swings
+% up door_L·sin(θ), giving total gap = 2·door_L·sin(θ).
+% Minimum angle: 2·door_L·sin(θ_geo) ≥ pkg_h  →  θ_geo = arcsin(pkg_h / (2·door_L))
+if pkg_h >= 2 * door_L
+    warning('doorDeploymentCFD: package height (%.3f m) >= 2 × door length (%.3f m). Check geometry.', ...
+        pkg_h, 2*door_L);
     theta_geo_deg = 90;
 else
-    theta_geo_deg = rad2deg(asin(pkg_h / door_L));
+    theta_geo_deg = rad2deg(asin(pkg_h / (2 * door_L)));
 end
 
 %% ── 11. Combined minimum deployment angle ───────────────────────────────────
@@ -260,15 +264,15 @@ fprintf('Fuselage: MH95, Lf = %.3f m, Wf = %.4f m\n', Lf, Wf);
 fprintf('Cruise:   V∞ = %.1f m/s,  q∞ = %.1f Pa,  α = %.1f°\n', ...
     V_inf, q_inf, alpha_deg);
 fprintf('Package:  m = %.3f kg  →  W = %.2f N\n', m_pkg, W_pkg);
-fprintf('Door:     hinge at x/c = %.2f (x = %.3f m),  L = %.3f m\n', ...
+fprintf('Door:     clamshell hinge at x/c = %.2f (x = %.3f m),  L_door = %.3f m\n', ...
     door_xfrac, x_door_actual, door_L);
-fprintf('          door area   = %.5f m² (%.4f m × %.4f m)\n', A_door, door_L, Wf);
+fprintf('          pkg bottom face = %.5f m² (%.4f m × %.4f m)\n', A_door, door_L, Wf);
 fprintf('-----------------------------------------------------------------\n');
-fprintf('Cp at door (closed fuselage, lower surface) = %+.4f\n', Cp_at_door);
+fprintf('Cp at door (closed fuselage, max both surfaces) = %+.4f\n', Cp_at_door);
 fprintf('Back-pressure force (closed)               = %+.3f N\n', Cp_at_door * q_inf * A_door);
 fprintf('Package weight                             =  %.3f N\n', W_pkg);
 fprintf('-----------------------------------------------------------------\n');
-fprintf('Geometric min angle (package clears gap)   = %.1f°\n', theta_geo_deg);
+fprintf('Geometric min angle (clamshell gap ≥ pkg_h) = %.1f°\n', theta_geo_deg);
 fprintf('Aerodynamic min angle (weight > F_back)    = %.1f°\n', theta_aero_deg);
 fprintf('COMBINED MINIMUM DOOR ANGLE                = %.1f°\n', min_angle_deg);
 fprintf('=================================================================\n\n');
@@ -331,28 +335,40 @@ hold(ax2, 'on'); box(ax2, 'on'); grid(ax2, 'on'); axis(ax2, 'equal');
 
 fill(ax2, x_af, y_af, [0.85 0.92 1.0], 'EdgeColor', [0.2 0.4 0.8], 'LineWidth', 1.2);
 
-% Overlay door region on lower surface
-mask_door = is_lower & xm >= x_door_actual & xm <= (x_door_actual + door_L);
-if any(mask_door)
-    x_door_lo = xm(mask_door);
-    y_door_lo = ym(mask_door);
-    [x_door_lo_s, idx_d] = sort(x_door_lo);
-    y_door_lo_s = y_door_lo(idx_d);
-    plot(ax2, x_door_lo_s, y_door_lo_s, 'r-', 'LineWidth', 4, 'DisplayName', 'Door panel');
+% Overlay clamshell door region on BOTH surfaces
+mask_door_lo = is_lower & xm >= x_door_actual & xm <= (x_door_actual + door_L);
+mask_door_up = is_upper & xm >= x_door_actual & xm <= (x_door_actual + door_L);
+if any(mask_door_lo)
+    xd = xm(mask_door_lo); yd = ym(mask_door_lo);
+    [xd_s, id] = sort(xd); yd_s = yd(id);
+    plot(ax2, xd_s, yd_s, 'r-', 'LineWidth', 4, 'DisplayName', 'Clamshell door panels');
+end
+if any(mask_door_up)
+    xd = xm(mask_door_up); yd = ym(mask_door_up);
+    [xd_s, id] = sort(xd); yd_s = yd(id);
+    plot(ax2, xd_s, yd_s, 'r-', 'LineWidth', 4, 'HandleVisibility', 'off');
 end
 
-% Draw door at minimum deployment angle
-theta_draw = deg2rad(min_angle_deg);
-x_hinge_pt = x_door_actual;
-% Get y-coordinate on lower surface at hinge
-[~, ih] = min(abs(x_lo - x_door_actual));
-y_hinge_pt = x_lo(ih) * 0 + ym(is_lower);
-[~, idx_h2] = min(abs(xm - x_door_actual));
-y_hinge_pt2 = ym(idx_h2);
-x_door_end = x_hinge_pt + door_L * cos(-theta_draw);  % door rotates downward
-y_door_end = y_hinge_pt2 - door_L * sin(theta_draw);
-plot(ax2, [x_hinge_pt, x_door_end], [y_hinge_pt2, y_door_end], ...
-    'm-', 'LineWidth', 3, 'DisplayName', sprintf('Door at θ = %.0f° (min deploy)', min_angle_deg));
+% Draw both clamshell panels at minimum deployment angle
+theta_draw  = deg2rad(min_angle_deg);
+x_hinge_pt  = x_door_actual;
+x_tip       = x_hinge_pt + door_L * cos(theta_draw);
+
+% Lower door: hinge on lower surface, tip swings downward
+y_lo_all = ym(is_lower);
+[~, ih_lo] = min(abs(x_lo - x_door_actual));
+y_lo_hinge = y_lo_all(ih_lo);
+y_lo_tip   = y_lo_hinge - door_L * sin(theta_draw);
+plot(ax2, [x_hinge_pt, x_tip], [y_lo_hinge, y_lo_tip], ...
+    'm-', 'LineWidth', 3, 'DisplayName', sprintf('Clamshell at θ = %.0f° (min deploy)', min_angle_deg));
+
+% Upper door: hinge on upper surface, tip swings upward
+y_up_all = ym(is_upper);
+[~, ih_up] = min(abs(x_up - x_door_actual));
+y_up_hinge = y_up_all(ih_up);
+y_up_tip   = y_up_hinge + door_L * sin(theta_draw);
+plot(ax2, [x_hinge_pt, x_tip], [y_up_hinge, y_up_tip], ...
+    'm-', 'LineWidth', 3, 'HandleVisibility', 'off');
 
 xlabel(ax2, 'x [m]');
 ylabel(ax2, 'y [m]');
@@ -400,14 +416,24 @@ deployOut.fig = fig;
 % For every possible door hinge x-location on the lower surface, compute the
 % minimum deployment angle.  This tells you WHERE to put the door.
 
-% Sorted lower-surface Cp data
-[x_lo_s, idx_sort] = sort(x_lower);
-Cp_lo_s = Cp_lower(idx_sort);
+% Sorted Cp data for both surfaces
+[x_lo_s, idx_sort_lo] = sort(x_lower);
+Cp_lo_s = Cp_lower(idx_sort_lo);
+
+[x_up_s_sw, idx_sort_up] = sort(x_upper);
+Cp_up_s_sw = Cp_upper(idx_sort_up);
+
+% Clamshell back-pressure Cp = max from either surface at each hinge x
+Cp_clam_s = zeros(size(x_lo_s));
+for k = 1:length(x_lo_s)
+    [~, ku] = min(abs(x_up_s_sw - x_lo_s(k)));
+    Cp_clam_s(k) = max(Cp_lo_s(k), Cp_up_s_sw(ku));
+end
 
 % Sweep over hinge x-locations
 min_angle_sweep = zeros(size(x_lo_s));
 for k = 1:length(x_lo_s)
-    Cp_k    = Cp_lo_s(k);
+    Cp_k     = Cp_clam_s(k);
     Cp_eff_k = Cp_k .* (1 - sin(theta_rad)) + Cp_base .* sin(theta_rad);
     F_back_k = Cp_eff_k .* q_inf .* A_door;
     ok_k     = find(W_pkg > F_back_k, 1, 'first');
@@ -491,7 +517,9 @@ y_fill_bad = [0, 0, max(Cp_lo_s)*1.1, max(Cp_lo_s)*1.1];
 fill(ax_b, x_fill_full, y_fill_bad, [1.0 0.85 0.85], 'EdgeColor', 'none', ...
     'FaceAlpha', 0.5, 'DisplayName', 'Pressure region (back-pressure)');
 
-plot(ax_b, x_lo_s, Cp_lo_s, 'k-', 'LineWidth', 2.5, 'DisplayName', 'Lower surface Cp');
+plot(ax_b, x_lo_s, Cp_lo_s, 'r-', 'LineWidth', 2.5, 'DisplayName', 'Lower surface Cp');
+plot(ax_b, x_up_s_sw, Cp_up_s_sw, 'b--', 'LineWidth', 1.8, 'DisplayName', 'Upper surface Cp');
+plot(ax_b, x_lo_s, Cp_clam_s, 'k-', 'LineWidth', 1.2, 'DisplayName', 'Clamshell Cp (max, used for force)');
 yline(ax_b, 0, 'k--', 'LineWidth', 1);
 
 % Mark selected and best hinge
@@ -502,7 +530,7 @@ xline(ax_b, x_best, 'g-', 'LineWidth', 2, ...
 
 set(ax_b, 'YDir', 'reverse');
 xlabel(ax_b, 'x [m]');  ylabel(ax_b, 'Cp  [–]');
-title(ax_b, 'Lower Surface Cp vs. Hinge x-Location');
+title(ax_b, 'Surface Cp vs. Hinge x-Location (red=lower, blue=upper, black=clamshell max)');
 legend(ax_b, 'Location', 'best', 'FontSize', 8);
 
 % ── Panel C: Minimum deployment angle vs hinge x-location ───────────────────
@@ -527,7 +555,7 @@ ylabel(ax_c, 'Min door angle for deployment  [deg]');
 title(ax_c, 'Minimum Deployment Angle vs. Door Hinge Location — Pick the Minimum');
 legend(ax_c, 'Location', 'best', 'FontSize', 8);
 
-sgtitle(fig2, sprintf('Nimbus Door Placement Selection  (L_{door} = %.3f m,  pkg h = %.3f m)', ...
+sgtitle(fig2, sprintf('Nimbus Clamshell Door Placement  (L_{door} = %.3f m,  pkg h = %.3f m,  gap = 2·L·sin θ)', ...
     door_L, pkg_h), 'FontSize', 12, 'FontWeight', 'bold');
 
 deployOut.fig2 = fig2;

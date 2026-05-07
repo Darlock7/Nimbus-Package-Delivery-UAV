@@ -258,7 +258,7 @@ fprintf('Volume package (cardboard box): surface area = %.4f m²,  mass ≈ %.1f
 
 doorIn.m_package_kg   = m_vol_pkg_kg;   % [kg] volume package (NOT the weight package)
 doorIn.package_h_m    = cargoOut.height_m;   % [m]  package height = cargo bay height
-doorIn.door_xfrac     = 0.65;           % [-]  door hinge at 65% chord (aft cargo bay)
+doorIn.door_xfrac     = 0.80;           % [-]  clamshell hinge at 80% chord (near TE)
 doorIn.door_length_m  = cargoOut.width_m;    % [m]  door = fore-aft extent of cargo bay
 doorIn.door_angles_deg = 5:5:90;        % [deg]  sweep from barely open to fully open
 doorIn.Npanels        = 200;
