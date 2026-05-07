@@ -187,15 +187,26 @@ end
 %% -------------------------
 % Best point and buffered design point
 % -------------------------
-WS_best = WS_feas(end);
-TW_best = TW_req_feas(end);
+% Best point: 10% inside stall limit (left and down along constraint envelope)
+WS_best = WS_stall_max * (1 - 0.10);
+WS_best = max(WS_best, WS_min);
+TW_best = interp1(WS_vec, TW_req, WS_best, 'linear', 'extrap');
 
-WS_design = WS_best * (1 - buf_WS);
+% Design WS derived directly from stall limit (decoupled from best point)
+WS_design = WS_stall_max * (1 - buf_WS);
 WS_design = max(WS_design, WS_min);
-WS_design = min(WS_design, WS_best);
+WS_design = min(WS_design, WS_stall_max);
 
 TW_req_design = interp1(WS_vec, TW_req, WS_design, 'linear', 'extrap');
 TW_design     = TW_req_design * (1 + buf_TW);
+
+% Optional overrides to pin design point to locked design values
+if isfield(inp, 'WS_design_override') && ~isempty(inp.WS_design_override)
+    WS_design = inp.WS_design_override;
+end
+if isfield(inp, 'TW_design_override') && ~isempty(inp.TW_design_override)
+    TW_design = inp.TW_design_override;
+end
 
 T_design_N = TW_design * W0_N;
 

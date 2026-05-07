@@ -419,6 +419,12 @@ sIn.buf_TW = 0.10;
 sIn.propV_vec_mps = propOut.V_vec_mps;
 sIn.propT_vec_N   = propOut.T_vec_N;
 
+% Locked design point — pin to actual design values (CAD wing area + motor T/W at climb)
+S_locked          = 0.3087;                        % [m^2] from Onshape CAD
+T_locked_N        = interp1(propOut.V_vec_mps, propOut.T_vec_N, mission.V_climb_mps, 'linear', 'extrap');
+sIn.WS_design_override = sIn.W0_N / S_locked;     % [N/m^2]
+sIn.TW_design_override = T_locked_N / sIn.W0_N;   % [-]
+
 fprintf('\n================ CTOL Preliminary Sizing Inputs ================\n');
 fprintf('W0                 = %.4f N\n', sIn.W0_N);
 fprintf('AR                 = %.3f\n', sIn.AR);
