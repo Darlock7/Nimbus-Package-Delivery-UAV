@@ -187,9 +187,10 @@ Cp = 1 - (Vt / V_inf).^2;             % [-]
 %% ── 8. Find Cp at door hinge location (symmetric clamshell — both surfaces) ──
 x_door_hinge = door_xfrac * Lf;
 
-% Separate lower-surface (ny < 0) and upper-surface (ny >= 0) panels
-is_lower = ny < 0;
-is_upper = ny >= 0;
+% Identify surfaces by panel midpoint y-coordinate — robust regardless of
+% whether the airfoil data is CW (Selig format) or CCW.
+is_upper = ym > median(ym);   % higher y = top of fuselage
+is_lower = ym <= median(ym);  % lower y  = bottom of fuselage
 
 x_lower  = xm(is_lower);    Cp_lower = Cp(is_lower);
 x_upper  = xm(is_upper);    Cp_upper = Cp(is_upper);
@@ -205,21 +206,130 @@ end
 Cp_at_door    = max(Cp_lower(idx_lo), Cp_upper(idx_up));
 x_door_actual = x_lower(idx_lo);
 
+%% ── 8a. Cp_base: flat-back truncated panel method ───────────────────────────
+% Run the source panel method on the MH95 profile truncated at x_door_hinge
+% with a vertical flat-back closing segment.  This represents the fuselage
+% with the clamshell fully open (θ = 90°) and gives an inviscid estimate of
+% the base pressure.
+%
+% Inviscid panel methods yield Cp > 0 at the base (stagnation region) because
+% flow separation is not modelled.  This is CONSERVATIVE for deployment:
+% higher Cp_base → more back-pressure → larger required door angle.
+% The empirical value (Hoerner) is Cp_base_emp = -0.15 (accounts for viscous
+% wake and separation).  We use max(inviscid, empirical) as the design bound.
+
+Cp_base_emp = -0.15;
+
+% ── Find the two arc-length crossings of x_pan = x_door_hinge ───────────
+x_res = x_pan - x_door_hinge;
+cross_k = find(x_res(1:end-1) .* x_res(2:end) < 0);
+
+if numel(cross_k) < 2
+    warning('doorDeploymentCFD: < 2 crossings at x_door_hinge — using empirical Cp_base.');
+    Cp_base = Cp_base_emp;
+else
+    n_cr = numel(cross_k);
+    sc_all = zeros(n_cr,1);   yc_all = zeros(n_cr,1);
+    for kci = 1:n_cr
+        k1 = cross_k(kci);
+        t  = (x_door_hinge - x_pan(k1)) / (x_pan(k1+1) - x_pan(k1));
+        sc_all(kci) = s_new(k1) + t*(s_new(k1+1) - s_new(k1));
+        yc_all(kci) = y_pan(k1) + t*(y_pan(k1+1)  - y_pan(k1));
+    end
+    [~, ic] = sort(yc_all, 'descend');
+    s_hi = sc_all(ic(1));   y_hi_fb = yc_all(ic(1));   % upper-surface crossing
+    s_lo = sc_all(ic(end)); y_lo_fb = yc_all(ic(end));  % lower-surface crossing
+
+    % Check which arc-length interval spans the LE (x ≈ 0)
+    s_chk = linspace(min(s_hi,s_lo), max(s_hi,s_lo), 31)';
+    x_chk = interp1(s_new, x_pan, s_chk, 'linear');
+    if min(x_chk) < 0.1*Lf
+        s_fwd = linspace(s_hi, s_lo, Npanels-1)';
+    else
+        n1 = max(2, round((s_new(end)-s_lo)/s_new(end) * (Npanels-1)));
+        n2 = max(2, (Npanels-1) - n1);
+        s_fwd = [linspace(s_lo, s_new(end), n1)'; linspace(0, s_hi, n2)'];
+    end
+
+    x_fwd_fb = interp1(s_new, x_pan, s_fwd, 'pchip');
+    y_fwd_fb = interp1(s_new, y_pan, s_fwd, 'pchip');
+
+    % Closed profile: flat-back at x_door_hinge, then forward section
+    x_fb = [x_door_hinge; x_fwd_fb; x_door_hinge];
+    y_fb = [y_hi_fb;      y_fwd_fb; y_lo_fb     ];
+
+    s_fb_r = [0; cumsum(sqrt(diff(x_fb).^2 + diff(y_fb).^2))];
+    s_fb_u = linspace(0, s_fb_r(end), Npanels+1)';
+    xpb = interp1(s_fb_r, x_fb, s_fb_u, 'pchip');
+    ypb = interp1(s_fb_r, y_fb, s_fb_u, 'pchip');
+
+    % Panel geometry
+    dx_b = diff(xpb);   dy_b = diff(ypb);
+    len_b = sqrt(dx_b.^2 + dy_b.^2);
+    phi_b = atan2(dy_b, dx_b);
+    nx_b  = -sin(phi_b);   ny_b = cos(phi_b);
+    xmb   = 0.5*(xpb(1:Npanels) + xpb(2:Npanels+1));
+    ymb   = 0.5*(ypb(1:Npanels) + ypb(2:Npanels+1));
+
+    % Influence matrix
+    Ab = zeros(Npanels);   Bb = zeros(Npanels);
+    for ii = 1:Npanels
+        for jj = 1:Npanels
+            dpxb  = xmb(ii) - xpb(jj);
+            dpyb  = ymb(ii) - ypb(jj);
+            cpjb  = cos(phi_b(jj));   spjb = sin(phi_b(jj));
+            Xlb   =  dpxb*cpjb + dpyb*spjb;
+            Ylb   = -dpxb*spjb + dpyb*cpjb;
+            ljb   = len_b(jj);
+            r1b   = max(Xlb^2 + Ylb^2, 1e-30);
+            r2b   = max((Xlb-ljb)^2 + Ylb^2, 1e-30);
+            if ii == jj
+                ulb = 0;   vlb = 0.5;
+            else
+                ulb = (1/(4*pi)) * log(r1b/r2b);
+                vlb = (1/(2*pi)) * (atan2(Ylb,Xlb-ljb) - atan2(Ylb,Xlb));
+            end
+            Vxb = ulb*cpjb - vlb*spjb;
+            Vyb = ulb*spjb + vlb*cpjb;
+            Ab(ii,jj) = Vxb*nx_b(ii) + Vyb*ny_b(ii);
+            Bb(ii,jj) = Vxb*cos(phi_b(ii)) + Vyb*sin(phi_b(ii));
+        end
+    end
+
+    Vn_b  = V_inf*cos(alpha_rad)*nx_b + V_inf*sin(alpha_rad)*ny_b;
+    sig_b = Ab \ (-Vn_b);
+    Vtb   = Bb*sig_b + V_inf*(cos(alpha_rad)*cos(phi_b) + sin(alpha_rad)*sin(phi_b));
+    Cp_fb_sol = 1 - (Vtb/V_inf).^2;
+
+    % Identify flat-back panels (at x ≈ x_door_hinge)
+    fb_tol  = 3 * mean(len_b);
+    fb_mask = abs(xmb - x_door_hinge) < fb_tol;
+    if any(fb_mask)
+        Cp_base_panel = mean(Cp_fb_sol(fb_mask));
+    else
+        Cp_base_panel = NaN;
+    end
+
+    % Conservative design choice: use the higher Cp_base
+    if isnan(Cp_base_panel)
+        Cp_base = Cp_base_emp;
+    else
+        Cp_base = max(Cp_base_emp, Cp_base_panel);
+    end
+    fprintf('Cp_base  inviscid flat-back panel method = %+.4f  [conservative, no separation]\n', Cp_base_panel);
+    fprintf('Cp_base  empirical viscous (Hoerner)     = %+.4f\n', Cp_base_emp);
+    fprintf('Cp_base  used in force model (max)       = %+.4f\n', Cp_base);
+end
+
 %% ── 9. Door angle sweep — force balance ────────────────────────────────────
 % Package bottom face area (fore-aft length × fuselage width) — the face that
 % sees back-pressure as the package drops through the clamshell opening.
 A_door = door_L * Wf;                  % [m^2]
 
 % Aerodynamic model:
-%   Closed fuselage: Cp at door = Cp_at_door (from panel method)
-%   Fully open (θ = 90°): base pressure Cp_base ≈ -0.15 (blunt body, empirical)
+%   Closed fuselage: Cp at door = Cp_at_door (panel method, from section 8)
+%   Fully open (θ = 90°): base pressure Cp_base (from flat-back panel, section 8a)
 %   Interpolation: Cp_eff(θ) = Cp_door*(1 - sin(θ)) + Cp_base*sin(θ)
-%
-% Physical interpretation: as door swings down, the door panel acts as a
-% deflector that accelerates flow around the opening, reducing (and eventually
-% reversing) the pressure at the gap.  At θ=90° the opening is blunt and
-% base pressure dominates.
-Cp_base = -0.15;    % empirical base pressure coefficient for streamlined body
 
 theta_rad  = deg2rad(angles_deg);
 Cp_eff     = Cp_at_door .* (1 - sin(theta_rad)) + Cp_base .* sin(theta_rad);
@@ -302,8 +412,7 @@ fig = figure('Name', 'Door Deployment Analysis', 'Color', 'w', 'NumberTitle', 'o
 ax1 = subplot(2, 2, [1 2], 'Parent', fig);
 hold(ax1, 'on'); box(ax1, 'on'); grid(ax1, 'on');
 
-% Split into upper and lower surface for clean plotting
-is_upper = ny >= 0;
+% Split into upper and lower surface (is_upper/is_lower defined in section 8)
 x_up = xm(is_upper);  Cp_up = Cp(is_upper);
 x_lo = xm(is_lower);  Cp_lo = Cp(is_lower);
 
