@@ -1967,6 +1967,82 @@ else
 end
 
 fprintf('====================================================================\n\n');
+%% ============= LANDING GEAR CONFIGURATION (FINAL) ==============
+
+x_cg = xcg_total;     % [m] aircraft CG location from nose
+z_cg = zcg_total;     % [m] CG height from ground
+
+L_aircraft = Lf;      % [m] overall aircraft length
+b = wingOut.b;        % [m] wingspan
+
+W_total = Wg;         % [N] gross weight
+
+rotationAngle_deg = 12;   % [deg] desired takeoff rotation angle
+noseLoadFraction  = 0.12; % 8-15% typical nose wheel load
+
+clearanceMargin = 0.03;   % [m] tail clearance margin
+
+
+x_cg = xcg_total;     % [m] aircraft CG location from nose
+z_cg = zcg_total;     % [m] CG height from ground
+
+L_aircraft = Lf;      % [m] overall aircraft length
+b = wingOut.b;        % [m] wingspan
+
+W_total = Wg;         % [N] gross weight
+
+rotationAngle_deg = 12;   % [deg] desired takeoff rotation angle
+noseLoadFraction  = 0.12; % 8-15% typical nose wheel load
+
+clearanceMargin = 0.03;   % [m] tail clearance margin
+
+%% ---- MAIN GEAR LOCATION ----
+
+% Main gear slightly behind CG
+x_main = x_cg + 0.03 * L_aircraft;
+
+%% ---- NOSE GEAR LOCATION ----
+
+% Using static equilibrium:
+% Nose load fraction determines wheelbase
+
+wheelbase = (x_main - x_cg) / noseLoadFraction;
+
+x_nose = x_main - wheelbase;
+
+%% ---- MAIN GEAR LOCATION ----
+
+% Main gear slightly behind CG
+x_main = x_cg + 0.03 * L_aircraft;
+
+%% ---- NOSE GEAR LOCATION ----
+
+% Using static equilibrium:
+% Nose load fraction determines wheelbase
+
+wheelbase = (x_main - x_cg) / noseLoadFraction;
+
+x_nose = x_main - wheelbase;
+%% ---- MAIN GEAR TRACK WIDTH ----
+
+% Simple stability estimate
+
+trackWidth = 0.20 * b;
+
+fprintf('Recommended Track Width: %.3f m\n', trackWidth);
+
+%% ---- STATIC LOAD DISTRIBUTION ----
+
+W_nose = W_total * noseLoadFraction;
+W_main_total = W_total - W_nose;
+W_main_each = W_main_total / 2;
+
+fprintf('\nStatic Wheel Loads:\n');
+fprintf(' Nose Wheel  : %.2f N\n', W_nose);
+fprintf(' Each Main   : %.2f N\n', W_main_each);
+
+fprintf('=====================================================\n');
+
 %% =============== Profit Re-evaluation with Actual Physics ==============
 fprintf('\n================ PROFIT RE-EVALUATION (Actual Physics) =================\n');
 
