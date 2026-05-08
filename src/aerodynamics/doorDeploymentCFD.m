@@ -682,30 +682,31 @@ deployOut.fig2 = fig2;
 fprintf('Door placement sweep: best hinge at x = %.3f m  (x/c = %.2f)  → θ_min = %.1f°\n\n', ...
     x_best, x_best/Lf, best_angle);
 
-%% ── Figure 3: Streamlines & Vorticity — t0 → Steady State ──────────────────
-% Shows the velocity field (speed |V|/V∞ + streamlines) and the numerical
-% vorticity (ω = ∂v/∂x − ∂u/∂y) at three door angles:
-%   t0  : door just closed  (θ = 0°)
-%   mid : half-open          (θ = θ_min / 2)
-%   t_ss: steady-state open  (θ = θ_min)
+%% ── Figure 3: Streamlines & Vorticity — Animated t0 → Steady State ─────────
+% Animates the velocity field as the clamshell door opens from θ=0° to θ_max.
+% Two fixed axes are cleared and redrawn each frame so the flow visibly evolves.
+%   Top   : speed contour |V|/V∞  +  streamlines
+%   Bottom: vorticity ω = ∂v/∂x − ∂u/∂y  +  streamlines
 %
-% NOTE: This is an inviscid (potential-flow) analysis — theoretical ω = 0.
-% Numerical ω plotted here shows the irrotational nature and any small
-% discretisation artefacts near the panel boundaries.
+% NOTE: inviscid potential flow → ω = 0 theoretically.  The plotted ω is
+% purely numerical discretisation noise; it confirms the irrotational nature
+% of the solution and mirrors the style used in CFD homework assignments.
 
 if ~isnan(y_hi_fb) && ~isempty(x_fwd_fb)
 
     % Cap at 90° — prevents Inf/NaN when aerodynamic deployment is infeasible
     theta_vis_max = min(min_angle_deg, 90);
-    theta_vis_deg = unique(max(0, [0, theta_vis_max/2, theta_vis_max]));
-    n_vis = numel(theta_vis_deg);
 
-    % Velocity grid
-    xg_v = linspace(-0.05*Lf, 1.15*Lf, 80)';
-    yg_v = linspace(-0.40*Lf, 0.40*Lf, 55)';
+    % Dense angle sweep for smooth animation
+    n_anim        = 18;
+    theta_anim_deg = linspace(0, theta_vis_max, n_anim);
+
+    % Velocity grid (slightly coarser for speed)
+    xg_v = linspace(-0.05*Lf, 1.15*Lf, 70)';
+    yg_v = linspace(-0.40*Lf, 0.40*Lf, 48)';
     [XG, YG] = meshgrid(xg_v, yg_v);
 
-    Npsl = 120;   % reduced panel count for speed
+    Npsl = 120;
 
     % Blue-white-red diverging colourmap for vorticity
     nc_d = 256;
@@ -714,22 +715,38 @@ if ~isnan(y_hi_fb) && ~isempty(x_fwd_fb)
     b_c = [ones(nc_d/2,1); linspace(1,0,nc_d/2)'];
     cmap_bwr = [r_c, g_c, b_c];
 
-    fig3 = figure('Name','Streamlines & Vorticity — Door Opening (t0 to SS)', ...
-                  'Color','w','NumberTitle','off');
+    fig3 = figure('Name','Streamlines & Vorticity — Door Opening (Animated)', ...
+                  'Color','w','NumberTitle','off', 'Position',[100 80 900 620]);
 
-    for kv = 1:n_vis
-        theta_v    = deg2rad(theta_vis_deg(kv));
+    % Create fixed axes once — reused every frame
+    ax_sp = subplot(2, 1, 1, 'Parent', fig3);
+    ax_vt = subplot(2, 1, 2, 'Parent', fig3);
+
+    % Attach colorbars and colourmaps once (they survive cla)
+    colormap(ax_sp, turbo(256));
+    cb_sp = colorbar(ax_sp, 'Location', 'eastoutside');
+    cb_sp.Label.String = '|V|/V_∞  [-]';  cb_sp.FontSize = 8;
+
+    colormap(ax_vt, cmap_bwr);
+    cb_vt = colorbar(ax_vt, 'Location', 'eastoutside');
+    cb_vt.Label.String = 'ω  [rad/s]';    cb_vt.FontSize = 8;
+
+    fprintf('Figure 3: animating %d frames  (door %.0f° → %.0f°) …\n', ...
+        n_anim, theta_anim_deg(1), theta_anim_deg(end));
+
+    for kv = 1:n_anim
+        theta_v    = deg2rad(theta_anim_deg(kv));
         x_tip_v    = x_door_hinge + door_L * cos(theta_v);
         y_lo_tip_v = y_lo_fb - door_L * sin(theta_v);
         y_up_tip_v = y_hi_fb + door_L * sin(theta_v);
 
-        % Closing segment (vertical, between door tips)
+        % Closing segment between door tips
         n_cl = max(2, round(abs(y_up_tip_v - y_lo_tip_v) * 20 / Lf));
         y_cl = linspace(y_lo_tip_v, y_up_tip_v, n_cl)';
 
-        % Closed profile: forward section → lower door → closing → upper door
-        x_pr = [x_fwd_fb;              x_tip_v*ones(n_cl,1); x_fwd_fb(1)];
-        y_pr = [y_fwd_fb;              y_cl;                  y_fwd_fb(1)];
+        % Closed profile: forward fuselage → lower door tip → closing → upper door tip
+        x_pr = [x_fwd_fb;           x_tip_v*ones(n_cl,1); x_fwd_fb(1)];
+        y_pr = [y_fwd_fb;           y_cl;                  y_fwd_fb(1)];
 
         % Redistribute to Npsl panels
         s_pr = [0; cumsum(sqrt(diff(x_pr).^2 + diff(y_pr).^2))];
@@ -737,75 +754,62 @@ if ~isnan(y_hi_fb) && ~isempty(x_fwd_fb)
         xpp  = interp1(s_pr, x_pr, s_u, 'pchip');
         ypp  = interp1(s_pr, y_pr, s_u, 'pchip');
 
-        % Velocity field
+        % Velocity field on grid
         [UG, VG] = panelVelocityField(XG, YG, xpp, ypp, Npsl, V_inf, alpha_rad);
 
         % Mask interior
-        in_b  = inpolygon(XG, YG, x_pr, y_pr);
+        in_b = inpolygon(XG, YG, x_pr, y_pr);
         UG(in_b) = NaN;   VG(in_b) = NaN;
 
-        % Derived quantities
         speed_norm = sqrt(UG.^2 + VG.^2) / V_inf;
 
         [dV_dx, ~    ] = gradient(VG, xg_v, yg_v);
         [~,     dU_dy] = gradient(UG, xg_v, yg_v);
         omega = dV_dx - dU_dy;
         omega(in_b) = NaN;
+        omega_lim = max(1e-4, prctile(abs(omega(isfinite(omega))), 98));
 
-        % Subplot labels
-        if theta_vis_deg(kv) < 0.5
-            lbl = 't_0  (θ = 0°  —  closed)';
-        elseif kv == n_vis
-            lbl = sprintf('t_{ss}  θ = %.0f°  (deploy)', min_angle_deg);
-        else
-            lbl = sprintf('θ = %.0f°  (opening)', theta_vis_deg(kv));
-        end
-
-        % ── Row 1: Speed |V|/V∞ + streamlines ─────────────────────────────
-        ax_sp = subplot(2, n_vis, kv, 'Parent', fig3);
-        hold(ax_sp,'on');  box(ax_sp,'on');
-        contourf(ax_sp, XG, YG, speed_norm, 24, 'LineColor','none');
+        % ── Top axis: speed + streamlines ────────────────────────────────
+        cla(ax_sp);
+        hold(ax_sp, 'on');
+        contourf(ax_sp, XG, YG, speed_norm, 24, 'LineColor', 'none');
         colormap(ax_sp, turbo(256));
         clim(ax_sp, [0, 2.5]);
         streamslice(ax_sp, XG, YG, UG, VG, 1.5);
-        fill(ax_sp, x_pr, y_pr, [0.45 0.45 0.45], 'EdgeColor','k','LineWidth',0.8);
-        axis(ax_sp,'equal');
+        fill(ax_sp, x_pr, y_pr, [0.45 0.45 0.45], 'EdgeColor', 'k', 'LineWidth', 0.8);
+        axis(ax_sp, 'equal');
         axis(ax_sp, [-0.05*Lf, 1.15*Lf, -0.38*Lf, 0.38*Lf]);
-        title(ax_sp, lbl, 'FontSize', 8, 'FontWeight','bold');
-        if kv == 1
-            ylabel(ax_sp, 'y  [m]', 'FontSize', 8);
-            cb = colorbar(ax_sp, 'Location','eastoutside');
-            cb.Label.String = '|V|/V_∞  [-]';
-            cb.FontSize = 7;
-        end
-        xlabel(ax_sp, 'x  [m]', 'FontSize', 8);
+        xlabel(ax_sp, 'x  [m]', 'FontSize', 9);
+        ylabel(ax_sp, 'y  [m]', 'FontSize', 9);
+        title(ax_sp, sprintf('|V| / V_∞   —   θ = %.1f°  (%d / %d)', ...
+            theta_anim_deg(kv), kv, n_anim), 'FontSize', 9, 'FontWeight', 'bold');
+        box(ax_sp, 'on');
 
-        % ── Row 2: Vorticity ω + streamlines ──────────────────────────────
-        ax_vt = subplot(2, n_vis, kv + n_vis, 'Parent', fig3);
-        hold(ax_vt,'on');  box(ax_vt,'on');
-        omega_lim = max(1e-4, prctile(abs(omega(~in_b & isfinite(omega))), 98));
-        contourf(ax_vt, XG, YG, omega, 24, 'LineColor','none');
+        % ── Bottom axis: vorticity + streamlines ─────────────────────────
+        cla(ax_vt);
+        hold(ax_vt, 'on');
+        contourf(ax_vt, XG, YG, omega, 24, 'LineColor', 'none');
         colormap(ax_vt, cmap_bwr);
         clim(ax_vt, [-omega_lim, omega_lim]);
         streamslice(ax_vt, XG, YG, UG, VG, 1.5);
-        fill(ax_vt, x_pr, y_pr, [0.45 0.45 0.45], 'EdgeColor','k','LineWidth',0.8);
-        axis(ax_vt,'equal');
+        fill(ax_vt, x_pr, y_pr, [0.45 0.45 0.45], 'EdgeColor', 'k', 'LineWidth', 0.8);
+        axis(ax_vt, 'equal');
         axis(ax_vt, [-0.05*Lf, 1.15*Lf, -0.38*Lf, 0.38*Lf]);
-        title(ax_vt, sprintf('ω  (θ = %.0f°)', theta_vis_deg(kv)), 'FontSize', 8);
-        if kv == 1
-            ylabel(ax_vt, 'y  [m]', 'FontSize', 8);
-            cb2 = colorbar(ax_vt, 'Location','eastoutside');
-            cb2.Label.String = 'ω  [rad/s]';
-            cb2.FontSize = 7;
-        end
-        xlabel(ax_vt, 'x  [m]', 'FontSize', 8);
-    end
+        xlabel(ax_vt, 'x  [m]', 'FontSize', 9);
+        ylabel(ax_vt, 'y  [m]', 'FontSize', 9);
+        title(ax_vt, sprintf('Vorticity ω   —   θ = %.1f°', theta_anim_deg(kv)), ...
+            'FontSize', 9, 'FontWeight', 'bold');
+        box(ax_vt, 'on');
 
-    sgtitle(fig3, ...
-        sprintf(['Nimbus Cargo Door — Velocity Streamlines & Vorticity\n' ...
-                 '(Source panel method, MH95, V_∞ = %.0f m/s,  θ_{min} = %.0f°  |  ' ...
-                 'Inviscid: ω = 0 theoretically)'], V_inf, min_angle_deg), ...
-        'FontSize', 11, 'FontWeight', 'bold');
+        sgtitle(fig3, ...
+            sprintf(['Nimbus Cargo Door — Velocity & Vorticity  ' ...
+                     '(Source Panel, MH95, V_∞ = %.0f m/s)\n' ...
+                     'Inviscid: ω ≈ 0  |  θ_{min} = %.0f°'], V_inf, theta_vis_max), ...
+            'FontSize', 10, 'FontWeight', 'bold');
+
+        drawnow;          % flush to screen — makes animation visible
+        pause(0.18);      % [s] frame delay; reduce to speed up, increase to slow down
+    end
 
     deployOut.fig3 = fig3;
 end
