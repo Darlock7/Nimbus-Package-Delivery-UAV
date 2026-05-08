@@ -224,6 +224,11 @@ Cp_base_emp = -0.15;
 x_res = x_pan - x_door_hinge;
 cross_k = find(x_res(1:end-1) .* x_res(2:end) < 0);
 
+% Initialise forward-profile variables used by the streamline figure below.
+% Overwritten inside the else-branch when crossings are found.
+y_hi_fb   = NaN;   y_lo_fb   = NaN;
+x_fwd_fb  = [];    y_fwd_fb  = [];
+
 if numel(cross_k) < 2
     warning('doorDeploymentCFD: < 2 crossings at x_door_hinge — using empirical Cp_base.');
     Cp_base = Cp_base_emp;
@@ -671,4 +676,195 @@ deployOut.fig2 = fig2;
 fprintf('Door placement sweep: best hinge at x = %.3f m  (x/c = %.2f)  → θ_min = %.1f°\n\n', ...
     x_best, x_best/Lf, best_angle);
 
+%% ── Figure 3: Streamlines & Vorticity — t0 → Steady State ──────────────────
+% Shows the velocity field (speed |V|/V∞ + streamlines) and the numerical
+% vorticity (ω = ∂v/∂x − ∂u/∂y) at three door angles:
+%   t0  : door just closed  (θ = 0°)
+%   mid : half-open          (θ = θ_min / 2)
+%   t_ss: steady-state open  (θ = θ_min)
+%
+% NOTE: This is an inviscid (potential-flow) analysis — theoretical ω = 0.
+% Numerical ω plotted here shows the irrotational nature and any small
+% discretisation artefacts near the panel boundaries.
+
+if ~isnan(y_hi_fb) && ~isempty(x_fwd_fb)
+
+    theta_vis_deg = unique(max(0, [0, min_angle_deg/2, min_angle_deg]));
+    n_vis = numel(theta_vis_deg);
+
+    % Velocity grid
+    xg_v = linspace(-0.05*Lf, 1.15*Lf, 80)';
+    yg_v = linspace(-0.40*Lf, 0.40*Lf, 55)';
+    [XG, YG] = meshgrid(xg_v, yg_v);
+
+    Npsl = 120;   % reduced panel count for speed
+
+    % Blue-white-red diverging colourmap for vorticity
+    nc_d = 256;
+    r_c = [linspace(0,1,nc_d/2)'; ones(nc_d/2,1)];
+    g_c = [linspace(0,1,nc_d/2)'; linspace(1,0,nc_d/2)'];
+    b_c = [ones(nc_d/2,1); linspace(1,0,nc_d/2)'];
+    cmap_bwr = [r_c, g_c, b_c];
+
+    fig3 = figure('Name','Streamlines & Vorticity — Door Opening (t0 to SS)', ...
+                  'Color','w','NumberTitle','off');
+
+    for kv = 1:n_vis
+        theta_v    = deg2rad(theta_vis_deg(kv));
+        x_tip_v    = x_door_hinge + door_L * cos(theta_v);
+        y_lo_tip_v = y_lo_fb - door_L * sin(theta_v);
+        y_up_tip_v = y_hi_fb + door_L * sin(theta_v);
+
+        % Closing segment (vertical, between door tips)
+        n_cl = max(2, round(abs(y_up_tip_v - y_lo_tip_v) * 20 / Lf));
+        y_cl = linspace(y_lo_tip_v, y_up_tip_v, n_cl)';
+
+        % Closed profile: forward section → lower door → closing → upper door
+        x_pr = [x_fwd_fb;              x_tip_v*ones(n_cl,1); x_fwd_fb(1)];
+        y_pr = [y_fwd_fb;              y_cl;                  y_fwd_fb(1)];
+
+        % Redistribute to Npsl panels
+        s_pr = [0; cumsum(sqrt(diff(x_pr).^2 + diff(y_pr).^2))];
+        s_u  = linspace(0, s_pr(end), Npsl+1)';
+        xpp  = interp1(s_pr, x_pr, s_u, 'pchip');
+        ypp  = interp1(s_pr, y_pr, s_u, 'pchip');
+
+        % Velocity field
+        [UG, VG] = panelVelocityField(XG, YG, xpp, ypp, Npsl, V_inf, alpha_rad);
+
+        % Mask interior
+        in_b  = inpolygon(XG, YG, x_pr, y_pr);
+        UG(in_b) = NaN;   VG(in_b) = NaN;
+
+        % Derived quantities
+        speed_norm = sqrt(UG.^2 + VG.^2) / V_inf;
+
+        [dV_dx, ~    ] = gradient(VG, xg_v, yg_v);
+        [~,     dU_dy] = gradient(UG, xg_v, yg_v);
+        omega = dV_dx - dU_dy;
+        omega(in_b) = NaN;
+
+        % Subplot labels
+        if theta_vis_deg(kv) < 0.5
+            lbl = 't_0  (θ = 0°  —  closed)';
+        elseif kv == n_vis
+            lbl = sprintf('t_{ss}  θ = %.0f°  (deploy)', min_angle_deg);
+        else
+            lbl = sprintf('θ = %.0f°  (opening)', theta_vis_deg(kv));
+        end
+
+        % ── Row 1: Speed |V|/V∞ + streamlines ─────────────────────────────
+        ax_sp = subplot(2, n_vis, kv, 'Parent', fig3);
+        hold(ax_sp,'on');  box(ax_sp,'on');
+        contourf(ax_sp, XG, YG, speed_norm, 24, 'LineColor','none');
+        colormap(ax_sp, turbo(256));
+        clim(ax_sp, [0, 2.5]);
+        streamslice(ax_sp, XG, YG, UG, VG, 1.5);
+        fill(ax_sp, x_pr, y_pr, [0.45 0.45 0.45], 'EdgeColor','k','LineWidth',0.8);
+        axis(ax_sp,'equal');
+        axis(ax_sp, [-0.05*Lf, 1.15*Lf, -0.38*Lf, 0.38*Lf]);
+        title(ax_sp, lbl, 'FontSize', 8, 'FontWeight','bold');
+        if kv == 1
+            ylabel(ax_sp, 'y  [m]', 'FontSize', 8);
+            cb = colorbar(ax_sp, 'Location','eastoutside');
+            cb.Label.String = '|V|/V_∞  [-]';
+            cb.FontSize = 7;
+        end
+        xlabel(ax_sp, 'x  [m]', 'FontSize', 8);
+
+        % ── Row 2: Vorticity ω + streamlines ──────────────────────────────
+        ax_vt = subplot(2, n_vis, kv + n_vis, 'Parent', fig3);
+        hold(ax_vt,'on');  box(ax_vt,'on');
+        omega_lim = max(1e-4, prctile(abs(omega(~in_b & isfinite(omega))), 98));
+        contourf(ax_vt, XG, YG, omega, 24, 'LineColor','none');
+        colormap(ax_vt, cmap_bwr);
+        clim(ax_vt, [-omega_lim, omega_lim]);
+        streamslice(ax_vt, XG, YG, UG, VG, 1.5);
+        fill(ax_vt, x_pr, y_pr, [0.45 0.45 0.45], 'EdgeColor','k','LineWidth',0.8);
+        axis(ax_vt,'equal');
+        axis(ax_vt, [-0.05*Lf, 1.15*Lf, -0.38*Lf, 0.38*Lf]);
+        title(ax_vt, sprintf('ω  (θ = %.0f°)', theta_vis_deg(kv)), 'FontSize', 8);
+        if kv == 1
+            ylabel(ax_vt, 'y  [m]', 'FontSize', 8);
+            cb2 = colorbar(ax_vt, 'Location','eastoutside');
+            cb2.Label.String = 'ω  [rad/s]';
+            cb2.FontSize = 7;
+        end
+        xlabel(ax_vt, 'x  [m]', 'FontSize', 8);
+    end
+
+    sgtitle(fig3, ...
+        sprintf(['Nimbus Cargo Door — Velocity Streamlines & Vorticity\n' ...
+                 '(Source panel method, MH95, V_∞ = %.0f m/s,  θ_{min} = %.0f°  |  ' ...
+                 'Inviscid: ω = 0 theoretically)'], V_inf, min_angle_deg), ...
+        'FontSize', 11, 'FontWeight', 'bold');
+
+    deployOut.fig3 = fig3;
+end
+
+end
+
+%% ── Local helper: source-panel velocity field on a 2-D grid ─────────────────
+function [UG, VG] = panelVelocityField(XG, YG, x_pan_p, y_pan_p, N, V_inf, alpha_rad)
+%panelVelocityField  Hess-Smith panel solve + velocity field on meshgrid.
+%
+%   [UG, VG] = panelVelocityField(XG, YG, x_pan_p, y_pan_p, N, V_inf, alpha_rad)
+%
+%   Inputs:
+%     XG, YG      meshgrid of field points  [m]
+%     x_pan_p, y_pan_p   panel node coordinates (N+1 nodes)  [m]
+%     N           number of panels  [-]
+%     V_inf       freestream speed  [m/s]
+%     alpha_rad   angle of attack  [rad]
+%   Outputs:
+%     UG, VG      x- and y-velocity components on the grid  [m/s]
+
+dx_p  = diff(x_pan_p);    dy_p  = diff(y_pan_p);
+len_p = sqrt(dx_p.^2 + dy_p.^2);
+phi_p = atan2(dy_p, dx_p);
+nx_p  = -sin(phi_p);      ny_p  =  cos(phi_p);
+xm_p  = 0.5*(x_pan_p(1:N) + x_pan_p(2:N+1));
+ym_p  = 0.5*(y_pan_p(1:N) + y_pan_p(2:N+1));
+
+% Build influence matrix
+A_p = zeros(N);
+for i = 1:N
+    for j = 1:N
+        dpx = xm_p(i) - x_pan_p(j);
+        dpy = ym_p(i) - y_pan_p(j);
+        cpj = cos(phi_p(j));   spj = sin(phi_p(j));
+        X   =  dpx*cpj + dpy*spj;
+        Y   = -dpx*spj + dpy*cpj;
+        lj  = len_p(j);
+        r1  = max(X^2  + Y^2,        1e-30);
+        r2  = max((X-lj)^2 + Y^2,    1e-30);
+        if i == j
+            u_l = 0;   v_l = 0.5;
+        else
+            u_l = (1/(4*pi)) * log(r1/r2);
+            v_l = (1/(2*pi)) * (atan2(Y,X-lj) - atan2(Y,X));
+        end
+        Vx = u_l*cpj - v_l*spj;
+        Vy = u_l*spj + v_l*cpj;
+        A_p(i,j) = Vx*nx_p(i) + Vy*ny_p(i);
+    end
+end
+Vn_p    = V_inf*cos(alpha_rad)*nx_p + V_inf*sin(alpha_rad)*ny_p;
+sigma_p = A_p \ (-Vn_p);
+
+% Velocity at grid points (loop over panels, vectorised over grid)
+UG = V_inf * cos(alpha_rad) * ones(size(XG));
+VG = V_inf * sin(alpha_rad) * ones(size(YG));
+for j = 1:N
+    cpj = cos(phi_p(j));   spj = sin(phi_p(j));
+    lj  = len_p(j);
+    Xg  =  (XG - x_pan_p(j))*cpj + (YG - y_pan_p(j))*spj;
+    Yg  = -(XG - x_pan_p(j))*spj + (YG - y_pan_p(j))*cpj;
+    r1g = max(Xg.^2 + Yg.^2,        1e-30);
+    r2g = max((Xg-lj).^2 + Yg.^2,   1e-30);
+    u_lg = (1/(4*pi)) * log(r1g ./ r2g);
+    v_lg = (1/(2*pi)) * (atan2(Yg, Xg-lj) - atan2(Yg, Xg));
+    UG   = UG + sigma_p(j) * (u_lg*cpj - v_lg*spj);
+    VG   = VG + sigma_p(j) * (u_lg*spj + v_lg*cpj);
+end
 end
