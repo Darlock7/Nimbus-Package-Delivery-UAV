@@ -464,7 +464,8 @@ if any(mask_door_up)
 end
 
 % Draw both clamshell panels at minimum deployment angle
-theta_draw  = deg2rad(min_angle_deg);
+% Cap at 90° so cos/sin stay finite when deployment is infeasible (min_angle_deg = Inf)
+theta_draw  = deg2rad(min(min_angle_deg, 90));
 x_hinge_pt  = x_door_actual;
 x_tip       = x_hinge_pt + door_L * cos(theta_draw);
 
@@ -473,8 +474,13 @@ y_lo_all = ym(is_lower);
 [~, ih_lo] = min(abs(x_lo - x_door_actual));
 y_lo_hinge = y_lo_all(ih_lo);
 y_lo_tip   = y_lo_hinge - door_L * sin(theta_draw);
+if isinf(min_angle_deg)
+    door_lbl = 'Clamshell at θ = 90° (deploy blocked — shown at 90°)';
+else
+    door_lbl = sprintf('Clamshell at θ = %.0f°  (min deploy)', min_angle_deg);
+end
 plot(ax2, [x_hinge_pt, x_tip], [y_lo_hinge, y_lo_tip], ...
-    'm-', 'LineWidth', 3, 'DisplayName', sprintf('Clamshell at θ = %.0f° (min deploy)', min_angle_deg));
+    'm-', 'LineWidth', 3, 'DisplayName', door_lbl);
 
 % Upper door: hinge on upper surface, tip swings upward
 y_up_all = ym(is_upper);
@@ -689,7 +695,9 @@ fprintf('Door placement sweep: best hinge at x = %.3f m  (x/c = %.2f)  → θ_mi
 
 if ~isnan(y_hi_fb) && ~isempty(x_fwd_fb)
 
-    theta_vis_deg = unique(max(0, [0, min_angle_deg/2, min_angle_deg]));
+    % Cap at 90° — prevents Inf/NaN when aerodynamic deployment is infeasible
+    theta_vis_max = min(min_angle_deg, 90);
+    theta_vis_deg = unique(max(0, [0, theta_vis_max/2, theta_vis_max]));
     n_vis = numel(theta_vis_deg);
 
     % Velocity grid
