@@ -42,12 +42,24 @@ Keep it tight — only include what's actually relevant to the specific response
 
 ## Current Design Parameters — Always Read First
 
-Before answering any question about aircraft dimensions, weights, performance, or geometry, **read these two files**:
+Before answering any question about aircraft dimensions, weights, performance, or geometry, **read these files**:
 
-1. `outputs/manufacturing_dimensions.txt` — concise locked-in dimensions (span, chord, CG, mass, fin geometry). Use this as the primary reference for all numerical values.
-2. `outputs/main_output.txt` — full MATLAB pipeline output with all derived quantities (aero coefficients, stability margins, twist, propulsion, mission profile). Use this when the manufacturing sheet doesn't have the needed value.
+1. `outputs/Locked_in_Design.txt` — the most up-to-date locked design parameters. Use this as the primary reference for all numerical values.
+2. `outputs/manufacturing_dimensions.txt` — concise manufacturing dimensions (span, chord, CG, mass, fin geometry). Use this for physical build dimensions.
+3. `outputs/main_output.txt` — full MATLAB pipeline output with all derived quantities (aero coefficients, stability margins, twist, propulsion, mission profile). Use this when the above files don't have the needed value.
 
-Do not quote geometry or mass values from memory or from nimbusRFXParams.m defaults. Always pull from these output files. If these files conflict with each other, flag it — the manufacturing_dimensions.txt (newer timestamp) takes precedence.
+Do not quote geometry or mass values from memory or from nimbusRFXParams.m defaults. Always pull from these output files. If these files conflict with each other, flag it — `Locked_in_Design.txt` (most recent) takes precedence.
+
+## Running MATLAB
+
+Always run `run_project.m` before `main.m`. It loads all project paths — without it, functions in `src/` will not be found and the script will crash.
+
+From the terminal:
+```
+matlab -batch "run('run_project.m'); run('main.m')"
+```
+
+Never run `main.m` alone.
 
 ## Class Materials
 
