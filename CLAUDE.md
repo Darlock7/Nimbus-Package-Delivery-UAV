@@ -40,6 +40,15 @@ Keep it tight — only include what's actually relevant to the specific response
 - **Units:** SI throughout. Always include units. Flag any inconsistency immediately.
 - **Theory source:** Class slides in `class_material/`. Use them as technical ground truth for derivations, formulas, and verification. Reference the specific slide file when applying class methods.
 
+## Current Design Parameters — Always Read First
+
+Before answering any question about aircraft dimensions, weights, performance, or geometry, **read these two files**:
+
+1. `outputs/manufacturing_dimensions.txt` — concise locked-in dimensions (span, chord, CG, mass, fin geometry). Use this as the primary reference for all numerical values.
+2. `outputs/main_output.txt` — full MATLAB pipeline output with all derived quantities (aero coefficients, stability margins, twist, propulsion, mission profile). Use this when the manufacturing sheet doesn't have the needed value.
+
+Do not quote geometry or mass values from memory or from nimbusRFXParams.m defaults. Always pull from these output files. If these files conflict with each other, flag it — the manufacturing_dimensions.txt (newer timestamp) takes precedence.
+
 ## Class Materials
 
 All course PDFs are in `class_material/`:

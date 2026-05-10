@@ -84,7 +84,7 @@ function rfxIn = nimbusRFXParams(wingOut, vertOut, massOut, propIn, massOut_unlo
     rfxIn.D_prop_in     = propIn.D_in;        % [in]
     rfxIn.pitch_prop_in = propIn.pitch_in;    % [in]
     rfxIn.is_pusher     = false;              % tractor configuration
-    rfxIn.motor_name    = 'Spektrum Avian 2826-1100Kv';  % KV=1100 match
+    rfxIn.motor_name    = 'ElectriFly RimFire 28-30-1100 Outrunner';  % KV=1100 match
 
     %% ---- Battery (3S 2200 mAh LiPo) ----
     rfxIn.n_cells_series    = 3;       % 3S = 11.1V nominal

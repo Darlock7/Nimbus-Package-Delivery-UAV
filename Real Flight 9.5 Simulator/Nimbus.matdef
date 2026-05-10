@@ -1,0 +1,32 @@
+
+
+[Main]
+MaterialsArray=INTARRAY:1~
+
+   SUBGROUP[MaterialsArray]
+
+      SUBGROUP[#1]
+         DiffuseColorA=FLOAT:1.
+         DiffuseColorB=FLOAT:0.647059
+         DiffuseColorG=FLOAT:0.647059
+         DiffuseColorR=FLOAT:0.647059
+         DiffuseTexture=STRING:
+         DontMerge=BOOL:No
+         MatID=INT:0
+         MaterialFlags=INT:0
+         MaterialName=STRING:0.647059_0.647059_0.647059_0.000000_0.000000
+         MaterialType=INT:1
+         NormalTexture=STRING:
+         OffsetU=FLOAT:0.
+         OffsetV=FLOAT:0.
+         RepeatU=FLOAT:1.
+         RepeatV=FLOAT:1.
+         SortOverride=INT:0
+         SpecularIntensity=FLOAT:0.25
+         SpecularPower=FLOAT:-inf
+         SpecularTexture=STRING:
+         TempName=STRING:0.647059_0.647059_0.647059_0.000000_0.000000
+      ENDGROUP[#1]
+
+   ENDGROUP[MaterialsArray]
+

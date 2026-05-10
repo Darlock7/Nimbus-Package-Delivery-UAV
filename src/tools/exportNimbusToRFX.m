@@ -1,4 +1,4 @@
-function exportNimbusToRFX(rfxIn, outputDir)
+function exportNimbusToRFX(rfxIn, outputDir, kexTemplatePath)
 % exportNimbusToRFX
 %
 % Purpose:
@@ -84,9 +84,20 @@ function exportNimbusToRFX(rfxIn, outputDir)
 %   exportNimbusToRFX(rfxIn, 'exports/');
 
     %% ---- Defaults ----
+    % Save project root immediately — previous failed runs may have left cd in tempdir
+    projectRoot = pwd;
+
     if nargin < 2 || isempty(outputDir)
-        outputDir = pwd;
+        outputDir = projectRoot;
     end
+    if nargin < 3 || isempty(kexTemplatePath)
+        % default: use the Extra330 placeholder extracted during setup
+        kexTemplatePath = '/tmp/rfx_inspect/Pilot RC Extra330SX103.kex';
+    end
+    hasKex       = exist(kexTemplatePath, 'file') == 2;
+    baseName     = 'Nimbus';
+    templateBase = 'Pilot RC Extra330SX103';
+    kexFile      = [baseName, '.kex'];
     if ~isfield(rfxIn,'has_winglets'),      rfxIn.has_winglets      = true;  end
     if ~isfield(rfxIn,'is_pusher'),         rfxIn.is_pusher         = false; end
     if ~isfield(rfxIn,'dihedral_deg'),      rfxIn.dihedral_deg      = 0;     end
@@ -315,7 +326,8 @@ function exportNimbusToRFX(rfxIn, outputDir)
     fv = [fv, sprintf('[Main]\n')];
     fv = [fv, sprintf('AircraftType=INT:1\n')];
     fv = [fv, sprintf('AppVersionBuild=UINT64:950038\n')];
-    fv = [fv, sprintf('BasedOn=STRING:Nimbus Flying Wing\n')];
+    % BasedOn must reference an installed aircraft — Extra330 is our visual base
+    fv = [fv, sprintf('BasedOn=STRING:%s\n', templateBase)];
     fv = [fv, sprintf('CDName=STRING:RealFlight G3\n')];
     fv = [fv, sprintf('CommentTSTRING=STRING:MAE155B Nimbus — flying wing delivery UAV\n')];
     fv = [fv, sprintf('EnableDaytimeLights=BOOL:No\n')];
@@ -398,7 +410,7 @@ function exportNimbusToRFX(rfxIn, outputDir)
     cb_l = c_root;  % [m] centerbody length = root chord
     cb_h = tot_ht_m + 0.05;
     fv = [fv, sprintf('   SUBGROUP[#2]\n')];
-    fv = [fv, sprintf('      AerodynamicsPercent=FLOAT:0.3\n')];
+    fv = [fv, sprintf('      AerodynamicsPercent=FLOAT:0.\n')];
     fv = [fv, sprintf('      AirfoilSide=STRING:NACA 0012\n')];
     fv = [fv, sprintf('      AirfoilTop=STRING:NACA 0012\n')];
     fv = [fv, sprintf('      AspectRatioFactor=FLOAT:1.\n')];
@@ -445,7 +457,7 @@ function exportNimbusToRFX(rfxIn, outputDir)
     fv = [fv, sprintf('         NumBlades=INT:2\n')];
     fv = [fv, sprintf('         ParasiticDragFactor=FLOAT:1.\n')];
     fv = [fv, sprintf('         PropDiameterMTR=FLOAT:%.5f\n', D_prop_m)];
-    fv = [fv, sprintf('         PropManufacturer=STRING:APC\n')];
+    fv = [fv, sprintf('         PropManufacturer=STRING:APC 10x47SF\n')];
     fv = [fv, sprintf('         PropPitchMTR=FLOAT:%.5f\n', pitch_m)];
     fv = [fv, sprintf('         PropVisualScale=FLOAT:1.\n')];
     fv = [fv, sprintf('         PropWashFactor=FLOAT:1.0\n')];
@@ -638,39 +650,72 @@ function exportNimbusToRFX(rfxIn, outputDir)
     %% ---- Build .bse text ----
     bse = '';
     bse = [bse, sprintf('[RenderInfo]\n')];
-    bse = [bse, sprintf('DefaultColorScheme=STRING:\n')];
+    bse = [bse, sprintf('DefaultColorScheme=STRING:pilot rc extra330sx_blackred\n')];
     bse = [bse, sprintf('RealFlightG3Override=STRING:\n')];
-    bse = [bse, sprintf('XK_FileName=STRING:\n\n')];  % blank — no 3D model embedded
+    bse = [bse, sprintf('XK_FileName=STRING:%s\n\n', [templateBase, '.kex'])];
     bse = [bse, sprintf('[Main]\n')];
     bse = [bse, sprintf('AppVersionBuild=UINT64:950038\n')];
     bse = [bse, sprintf('Version=INT:1\n\n')];
     bse = [bse, sprintf('[BaseInfo]\n')];
     bse = [bse, sprintf('KnifeEdgeOnly=BOOL:No\n')];
-    bse = [bse, sprintf('Name_TSTRING=STRING:Nimbus\n')];
+    bse = [bse, sprintf('Name_TSTRING=STRING:%s\n', baseName)];
 
-    %% ---- Write temp files and package as ZIP ----
+    %% ---- Build archive by injecting physics into the Extra330 template ----
+    % Keep ALL original filenames so g3x.enc signature stays valid.
+    % Only the .rfvehicle content is replaced with Nimbus physics.
+    % The aircraft will appear as "Nimbus" in RealFlight (via Name_TSTRING in .bse)
+    % but use Extra330 visuals until the real CAD model is ready.
+    templateRFX = fullfile(getenv('HOME'), 'Downloads', 'Pilot RC Extra330SX103_EA.RFX');
+
     tmpDir  = fullfile(tempdir, 'nimbus_rfx_tmp');
     if exist(tmpDir, 'dir'), rmdir(tmpDir, 's'); end
     mkdir(tmpDir);
 
-    vehicleName = 'Nimbus_EA';
-    rfvFile     = fullfile(tmpDir, [vehicleName, '.rfvehicle']);
-    bseFile     = fullfile(tmpDir, [vehicleName, '.bse']);
+    vehicleName  = 'Nimbus_EA';
+    templateBase = 'Pilot RC Extra330SX103';
 
-    fid = fopen(rfvFile, 'w', 'n', 'UTF-8');
+    assert(exist(templateRFX, 'file') == 2, ...
+        'Template RFX not found at: %s\nRe-download the Extra330SX103 file from RealFlight.', templateRFX);
+
+    % Extract entire Extra330 archive — keep ALL original filenames so
+    % g3x.enc validation passes. Only the .rfvehicle and .bse content changes.
+    unzip(templateRFX, tmpDir);
+
+    rfvFile = [templateBase, '.rfvehicle'];
+    bseFile = [templateBase, '.bse'];
+
+    fid = fopen(fullfile(tmpDir, rfvFile), 'w', 'n', 'UTF-8');
     fprintf(fid, '%s', fv);
     fclose(fid);
 
-    fid = fopen(bseFile, 'w', 'n', 'UTF-8');
+    fid = fopen(fullfile(tmpDir, bseFile), 'w', 'n', 'UTF-8');
     fprintf(fid, '%s', bse);
     fclose(fid);
 
+    % Resolve outputDir to absolute using the saved project root
+    if isempty(outputDir) || outputDir(1) ~= filesep
+        outputDir = fullfile(projectRoot, outputDir);
+    end
+    if ~exist(outputDir, 'dir'), mkdir(outputDir); end
     outRFX = fullfile(outputDir, [vehicleName, '.RFX']);
-    zip(outRFX, {rfvFile, bseFile});
+    outZIP = fullfile(outputDir, [vehicleName, '.zip']);
 
-    % The zip function prepends the full path — rename entries to bare filenames
-    % by repackaging with Java's ZipOutputStream
-    fixZipEntryNames(outRFX, tmpDir, vehicleName);
+    % Zip everything in tmpDir — cd so entries have no path prefix
+    allFiles = dir(tmpDir);
+    fileList = {allFiles(~[allFiles.isdir]).name};
+
+    cd(tmpDir);
+    try
+        zip(outZIP, fileList);
+    catch ME
+        cd(projectRoot);
+        rethrow(ME);
+    end
+    cd(projectRoot);
+
+    % rename .zip → .RFX
+    if exist(outRFX, 'file'), delete(outRFX); end
+    movefile(outZIP, outRFX);
 
     rmdir(tmpDir, 's');
 
@@ -690,45 +735,6 @@ function exportNimbusToRFX(rfxIn, outputDir)
     fprintf('  To add visuals: place Nimbus_EA.kex in the ZIP,\n');
     fprintf('  then set XK_FileName in Nimbus_EA.bse.\n');
     fprintf('========================================\n\n');
-end
-
-
-%% ========================================================================
-function fixZipEntryNames(rfxPath, tmpDir, vehicleName)
-% MATLAB zip() stores full absolute paths. This re-packages the ZIP
-% so entries are flat (Nimbus_EA.rfvehicle, Nimbus_EA.bse) as RealFlight
-% expects.
-
-    import java.io.*;
-    import java.util.zip.*;
-
-    rfvFile = fullfile(tmpDir, [vehicleName, '.rfvehicle']);
-    bseFile = fullfile(tmpDir, [vehicleName, '.bse']);
-    files   = {rfvFile, bseFile};
-    names   = {[vehicleName, '.rfvehicle'], [vehicleName, '.bse']};
-
-    tmpOut = [rfxPath, '.tmp'];
-    fos    = FileOutputStream(tmpOut);
-    zos    = ZipOutputStream(fos);
-
-    buf = javaArray('byte', 4096);
-    for k = 1:numel(files)
-        ze  = ZipEntry(names{k});
-        zos.putNextEntry(ze);
-        fis = FileInputStream(files{k});
-        while true
-            n = fis.read(buf);
-            if n < 0, break; end
-            zos.write(buf, 0, n);
-        end
-        fis.close();
-        zos.closeEntry();
-    end
-    zos.close();
-    fos.close();
-
-    delete(rfxPath);
-    movefile(tmpOut, rfxPath);
 end
 
 
