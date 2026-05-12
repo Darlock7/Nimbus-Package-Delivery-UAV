@@ -695,7 +695,9 @@ function write_geom(fname, cg, Sref, Cref, Bref, Mach, ...
     fprintf(fid,"! rudder starts\n");
     fprintf(fid,"SECTION\n");
     fprintf(fid,"  %-10.6f   %-10.6f   %-10.6f   %-10.6f   0.000000\n", x_rud0_R, y_rud0_R, z_rud0_R, c_rud0);
-    fprintf(fid,"NACA\n0010\n\n");
+    fprintf(fid,"NACA\n0010\n");
+    fprintf(fid,"CONTROL\n");
+    fprintf(fid,"rudder    1.000  %.3f     0 0 0          1.0\n\n", xh_rud);
 
     fprintf(fid,"! rudder ends\n");
     fprintf(fid,"SECTION\n");
@@ -710,7 +712,7 @@ function write_geom(fname, cg, Sref, Cref, Bref, Mach, ...
     fprintf(fid,"CONTROL\n");
     fprintf(fid,"rudder    1.000  %.3f     0 0 0          1.0\n\n", xh_rud);
 
-    % Left fin  (Y negated; rudder gain = +1 — same as right fin so forces add, not cancel)
+    % Left fin  (Y negated; rudder gain = +1 — symmetric with right fin)
     fprintf(fid,"! VFIN_L  mirror of Vfin_R  rudder gain=+1\n");
     fprintf(fid,"SURFACE\nVfin_L\n");
     fprintf(fid,"8 1.0  16 1.0\n\n");
@@ -725,7 +727,9 @@ function write_geom(fname, cg, Sref, Cref, Bref, Mach, ...
 
     fprintf(fid,"SECTION\n");
     fprintf(fid,"  %-10.6f   %-10.6f   %-10.6f   %-10.6f   0.000000\n", x_rud0_R, -y_rud0_R, z_rud0_R, c_rud0);
-    fprintf(fid,"NACA\n0010\n\n");
+    fprintf(fid,"NACA\n0010\n");
+    fprintf(fid,"CONTROL\n");
+    fprintf(fid,"rudder    1.000  %.3f     0 0 0          1.0\n\n", xh_rud);
 
     fprintf(fid,"SECTION\n");
     fprintf(fid,"  %-10.6f   %-10.6f   %-10.6f   %-10.6f   0.000000\n", x_rud1_R, -y_rud1_R, z_rud1_R, c_rud1);

@@ -843,7 +843,7 @@ vertIn.sweep_c4_v_deg = 60.0;  % delta winglet
 vertIn.cant_deg = 0.0;
 vertIn.toe_deg  = 0.0;
 
-vertIn.topFrac = 0.66;
+vertIn.topFrac = 0.75;
 
 % ---------- Mounting at wing tip ----------
 vertIn.xLE_root_v_m = wingOut.xLE_tip_m;
@@ -1675,6 +1675,7 @@ csIn.Cmde      = dynOut.controlDerivs.Cmde;
 csIn.Clda      = dynOut.controlDerivs.Clda;
 csIn.Cnda      = dynOut.controlDerivs.Cnda;
 csIn.Cndr      = dynOut.controlDerivs.Cndr;
+csIn.Cnb       = dynOut.derivatives.Cnb;
 csIn.Cm0_trim  = dynOut.controlDerivs.Cm0_trim;
 csIn.CL_trim   = aeroOut.CL_cruise;
 csIn.CLmax     = CLmax;
@@ -2267,6 +2268,9 @@ end
 fprintf(fid, '\n');
 
 % ---- Structure ----
+d_selected = d_spar;
+d_req = ((32 * M_max * 2.0) / (pi * CF.sigma_allow))^(1/3);
+delta_max = delta;
 fprintf(fid, '--- STRUCTURE ---\n');
 fprintf(fid, '  Spar diameter (selected)    = %.0f mm\n', d_selected*1000);
 fprintf(fid, '  Required spar diameter      = %.2f mm\n', d_req*1000);

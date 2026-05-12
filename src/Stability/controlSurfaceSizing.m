@@ -11,6 +11,7 @@ function csOut = controlSurfaceSizing(csIn)
 %   .Clda        [/deg]  aileron  Cl effectiveness  (Cld02 from AVL)
 %   .Cnda        [/deg]  aileron adverse yaw        (Cnd02 from AVL)
 %   .Cndr        [/deg]  rudder yaw effectiveness   (Cnd03 from AVL)
+%   .Cnb         [/rad]  directional stability      (Cnb   from AVL)
 %   .Cm0_trim    [-]     pitching moment at δe=0    (Cmtot from AVL)
 %   .CL_trim     [-]     cruise lift coefficient
 %   .CLmax       [-]     airfoil stall CL (upper bound on CL_turn)
@@ -34,6 +35,7 @@ function csOut = controlSurfaceSizing(csIn)
 %   .rudder_height_m [m]   rudder span / height            (optional)
 %
 % Outputs (csOut struct):
+%   .beta_max_deg      [deg]   max trimmable sideslip at full rudder
 %   .delta_e_trim_deg  [deg]   trim elevon deflection
 %   .n_max             [-]     max load factor (pitch authority)
 %   .phi_max_deg       [deg]   max bank angle
@@ -58,6 +60,7 @@ function csOut = controlSurfaceSizing(csIn)
     Clda    = abs(csIn.Clda);   % magnitude — sign depends on which wing AVL picked
     Cnda    = csIn.Cnda;
     Cndr    = csIn.Cndr;
+    if isfield(csIn,'Cnb'), Cnb = csIn.Cnb; else, Cnb = NaN; end
     Cm0     = csIn.Cm0_trim;
     CL_c    = csIn.CL_trim;
     CLmax   = csIn.CLmax;
@@ -116,6 +119,18 @@ function csOut = controlSurfaceSizing(csIn)
     qbar   = 0.5 * rho * V^2;
     N_rud  = Cn_rud * qbar * S * b;   % [N·m] yaw moment at max rudder
 
+    % Steady sideslip balance:  Cnb*beta + Cndr*dr = 0  →  beta_max = Cndr*dr / Cnb
+    % Cndr [/deg], dr_max [deg], Cnb [/rad] → convert Cndr to /rad for balance
+    if ~isnan(Cnb) && Cnb > 0
+        Cndr_rad  = abs(Cndr) * (180/pi);   % [/rad]
+        beta_max_deg = Cndr_rad * dr_max / Cnb;
+    else
+        beta_max_deg = NaN;
+    end
+
+    % Adverse yaw from aileron that rudder must cancel
+    dr_adverse_deg = abs(Cnda * da_max) / max(abs(Cndr), 1e-9);
+
     % ---- hinge moments vs SG90 servo (1.8 kg*cm = 0.177 N*m at 4.8V) ----
     T_sg90_Nm       = 0.177;
     HM_elevon_Nm    = NaN;
@@ -162,8 +177,13 @@ function csOut = controlSurfaceSizing(csIn)
     fprintf('  Steady-state roll rate   = %.1f deg/s  (at da=%.0f deg)\n', p_ss_dps, da_max);
     fprintf('  Adverse yaw (Cnda*da)    = %.5f  (small = good)\n', Cnda * da_max);
     fprintf('--- Rudder ---\n');
-    fprintf('  Max yaw moment           = %.4f N*m  (at dr=%.0f deg)\n', N_rud, dr_max);
     fprintf('  Cndr (per deg)           = %.6f\n', Cndr);
+    fprintf('  Max yaw moment           = %.4f N*m  (at dr=%.0f deg)\n', N_rud, dr_max);
+    if ~isnan(beta_max_deg)
+        fprintf('  Max trimmable sideslip   = %.1f deg  (Cndr*dr_max / Cnb)\n', beta_max_deg);
+        fprintf('  Adverse yaw correction   = %.1f deg rudder  (to cancel da=%.0f deg)\n', ...
+                dr_adverse_deg, da_max);
+    end
     if hasHingeGeom
         fprintf('--- Hinge Moments vs SG90 (%.3f N*m at 4.8V) ---\n', T_sg90_Nm);
         fprintf('  Elevon HM (one side)     = %.4f N*m  (de_max=%.0f deg)\n', HM_elevon_Nm, de_max);
@@ -207,6 +227,8 @@ function csOut = controlSurfaceSizing(csIn)
     csOut.delta_e_deg      = de_arr;
     csOut.p_ss_dps         = p_ss_dps;
     csOut.N_rud_Nm         = N_rud;
+    csOut.beta_max_deg     = beta_max_deg;
+    csOut.dr_adverse_deg   = dr_adverse_deg;
     csOut.limited_by       = limited_by;
     csOut.HM_elevon_Nm     = HM_elevon_Nm;
     csOut.HM_rudder_Nm     = HM_rudder_Nm;
