@@ -76,7 +76,7 @@ diary(logFile);
 
 %% =================== Run Flags =========================
 % Figures
-showPlots       = false;  % true = show all figures throughout the script
+showPlots       = true;  % true = show all figures throughout the script
 
 % AVL geometry viewer (opens interactive Terminal window — requires manual close)
 viewGeometry    = false;   % true = open AVL 3D viewer before stability run
@@ -161,10 +161,10 @@ Lf = 0.9500;                   % [m] body length — capped at 0.95 m (optimizer
 Wf = 0.1491;                   % [m] max body width — profit optimizer (2 × cb_halfwidth = 2 × 0.0746)
 
 % ---- wetted areas (scaled from geometry; wing/fin overwritten after wingOut/vertOut) ----
-Swet_wing = 0.64897702;        % [m^2] placeholder — overwritten after wingGeometryDesign
-Swet_fuse = 0.21672003 * (Lf * Wf) / (0.620 * 0.290);  % [m^2] scales with fuselage box area
-Swet_fin  = 0.16496199;        % [m^2] placeholder — overwritten after verticalSurfaceDesign
-Hf = 0.10145110;               % [m] max body height
+Swet_wing = 0.91825686;        % [m^2] placeholder — overwritten after wingGeometryDesign
+Swet_fuse = 0.26287392;  % [m^2] scales with fuselage box area
+Swet_fin  = 0.08059852;        % [m^2] placeholder — overwritten after verticalSurfaceDesign
+Hf = 0.18293818;               % [m] max body height
 
 % ---- wing / fin form-factor settings ----
 tc = 0.12;                 % [-] representative thickness-to-chord ratio
