@@ -136,9 +136,13 @@ if usePrelimModel
 end
 
 %% -------------------------
-% APC-table mode: PER3_10x45MR only
+% APC-table mode: select file based on propIn.propName
 % -------------------------
-filename = 'PER3_10x47SF.txt';
+if isfield(propIn,'propName') && contains(lower(string(propIn.propName)),'mr')
+    filename = 'PER3_10x45MR.txt';
+else
+    filename = 'PER3_10x47SF.txt';
+end
 D_m = D_in * 0.0254;
 
 txt = fileread(filename);
@@ -242,7 +246,7 @@ for i = 1:Nv
 end
 
 propOut = struct();
-propOut.mode = 'APC_10x47SF';
+propOut.mode = sprintf('APC_%s', strrep(filename,'.txt',''));
 propOut.propName = propName;
 
 propOut.KV = KV;
@@ -283,6 +287,18 @@ fprintf('Motor I0 = %.3f A\n', I0);
 fprintf('Computed static thrust = %.3f N\n', propOut.T_static_N);
 fprintf('Computed static current = %.3f A\n', propOut.I_static_A);
 fprintf('Current limit = %.3f A\n', I_max);
+
+I_valid = I_vec_A(isfinite(I_vec_A));
+I_peak  = max(I_valid);
+propOut.I_peak_A = I_peak;
+if I_peak > I_max
+    fprintf('*** WARNING: peak current %.1f A exceeds limit %.1f A at V=%.1f m/s ***\n', ...
+        I_peak, I_max, V_vec(I_vec_A == I_peak));
+elseif I_peak > 40
+    fprintf('*** WARNING: peak current %.1f A exceeds 40 A hard limit ***\n', I_peak);
+else
+    fprintf('Current check: OK  (peak = %.1f A <= %.1f A limit)\n', I_peak, I_max);
+end
 fprintf('============================================================\n\n');
 
 figure('Name', sprintf('Thrust vs Speed — %s', propName), 'NumberTitle', 'off', 'Color', 'w');
