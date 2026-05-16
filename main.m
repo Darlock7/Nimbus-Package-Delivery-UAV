@@ -415,7 +415,7 @@ sIn = struct();
 % Basic constants / current weight estimate
 sIn.rho_sl = roh;        % [kg/m^3]
 sIn.g      = g;          % [m/s^2]
-sIn.W0_N   = 2.251 * g;  % [N] mass-model result (fe-fraction overestimates at Vp=15L)
+sIn.W0_N   = 2.7495 * g; % [N] loaded mass from mass model (State 1: both payloads)
 
 % Aero assumptions
 sIn.AR    = AR;          % [-]
