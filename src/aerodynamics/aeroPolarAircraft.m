@@ -83,8 +83,9 @@ if useDragBuildUp
     FF_fin  = FF_wing;
 
     % Body / fuselage form factor
-    Amax = Wf * Hf;   % [m^2]
-    fineness = Lf / ((4/pi) * Amax);
+    Amax = Wf * Hf;                        % [m^2] max cross-sectional area
+    d_equiv  = sqrt((4/pi) * Amax);        % [m] equivalent circular diameter
+    fineness = Lf / d_equiv;               % [-] fineness ratio f = l/d
 
     FF_fuse = 1 + 60/(fineness^3) + fineness/400;
 
