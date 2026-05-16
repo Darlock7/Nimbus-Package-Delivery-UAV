@@ -424,7 +424,7 @@ sIn.V_climb_mps = mission.V_climb_mps;   % [m/s]
 sIn.G_climb     = mission.G_climb;       % [-]
 
 % Maneuver sizing
-sIn.V_turn_mps  = 16.0;   % [m/s] above turn stall (V_stall*sqrt(n)=15.5 m/s; was 11 — below stall)
+sIn.V_turn_mps  = 17.0;   % [m/s] above turn stall (V_stall_banked=16.7 m/s after CLmax sweep fix)
 sIn.n_maneuver  = mission.n_turn;        % [-]
 
 % Takeoff sizing from mission geometry

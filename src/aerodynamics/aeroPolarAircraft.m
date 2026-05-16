@@ -106,7 +106,7 @@ end
 CLalpha_3D = Cla_avg / (1 + (57.3 * Cla_avg) / (pi * e * AR));   % [1/deg]
 
 %% ---------------- First-pass 3D CLmax correction ----------------
-CLmax_3D = 0.90 * Clmax_avg;   % first-pass reduction from 2D section to 3D aircraft
+CLmax_3D = 0.90 * Clmax_avg * cosd(sweepC4_deg);   % 3D correction: 0.9 factor + swept-wing CLmax reduction
 
 %% ---------------- Aircraft lift and drag curves ----------------
 CL_linear = CLalpha_3D * (alpha_deg - aL0_avg);
