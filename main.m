@@ -76,7 +76,7 @@ diary(logFile);
 
 %% =================== Run Flags =========================
 % Figures
-showPlots       = false;  % true = show all figures throughout the script
+showPlots       = true;  % true = show all figures throughout the script
 
 % AVL geometry viewer (opens interactive Terminal window — requires manual close)
 viewGeometry    = false;   % true = open AVL 3D viewer before stability run
@@ -490,7 +490,7 @@ T_avail_climb_N = sizingOut.T_avail_climb_N;
 T_avail_turn_N  = sizingOut.T_avail_turn_N;
 
 % Wing area from selected wing loading
-S_ref = 2.251 * g / WS_design;    % [m^2] — uses mass-model weight (fe-fraction overestimates)
+S_ref = S_locked;                  % [m^2] locked CAD wing area (WS_design = W0/S_locked by construction)
 
 fprintf('Selected wing area S_ref      = %.4f m^2\n', S_ref);
 fprintf('Selected wing loading         = %.2f N/m^2\n', WS_design);
