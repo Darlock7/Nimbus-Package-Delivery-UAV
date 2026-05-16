@@ -99,7 +99,7 @@ if ~showPlots; set(0,'DefaultFigureVisible','off'); else; set(0,'DefaultFigureVi
 g = 9.81;                  % [m/s^2]
 Wprop = 2.43341;           % [N] total propulsion system weight
 ft3_to_m3 = 0.02831685;    % [m^3/ft^3]
-roh = 1.19;                % [kg/m^3] first-pass June density near SeaWorld
+roh = 1.234;               % [kg/m^3] Mission Bay Park 8am: P=101280 Pa, T=286 K -> rho=P/(R*T)
 
 % (i) Engineering assumptions:
 eta_p = 0.75;              % [-] propulsion efficiency
@@ -625,7 +625,7 @@ airfoilTipName  = 'e230.dat';
 
 % -------- Flow properties --------
 rho = roh;               % [kg/m^3]
-mu  = 1.789e-5;          % [kg/(m*s)]
+mu  = 1.801e-5;          % [kg/(m*s)] Sutherland's law at T=286 K
 Vref_mps = mission.V_pattern;   % [m/s]
 
 % -------- Reynolds numbers from current geometry --------
