@@ -119,7 +119,7 @@ fe = 0.450;                 % [-] baseline empty-weight fraction = We / Wg
 %   Vp = 0.010 m^3  --> VPS = 10
 
 Vp_ref = 0.001;            % [m^3] reference package volume for penalty scaling
-Vp     = 0.01500000000000;            % [m^3] CMA-ES optimal (was 0.0039)
+Vp     = 0.005;                        % [m^3] confirmed from CAD (cargo bay volume)
 VPS    = Vp / Vp_ref;      % [-] nondimensional package-volume scalar
 
 % -------- Empty-weight penalty model for package volume --------
@@ -256,7 +256,7 @@ m_vol_pkg_kg   = A_box_m2 * 0.55;       % [kg] cardboard box mass only
 fprintf('Volume package (cardboard box): surface area = %.4f m²,  mass ≈ %.1f g\n', ...
     A_box_m2, m_vol_pkg_kg * 1000);
 
-doorIn.m_package_kg   = m_vol_pkg_kg;   % [kg] volume package (NOT the weight package)
+doorIn.m_package_kg   = 0.300;          % [kg] volume box (300 g, what actually gets dropped)
 doorIn.package_h_m    = cargoOut.height_m;   % [m]  package height = cargo bay height
 doorIn.door_xfrac     = 0.80;           % [-]  clamshell hinge at 80% chord (near TE)
 doorIn.door_length_m  = cargoOut.width_m;    % [m]  door = fore-aft extent of cargo bay
@@ -1062,14 +1062,21 @@ fprintf('\n================ Aircraft Mass Properties =================\n');
 % -------------------------------------------------------------------------
 cadMass = struct();
 
-cadMass.fuselageOnly.name    = 'Fuselage CAD';
-cadMass.fuselageOnly.mass_kg = 1.135;                        % [kg] UPDATED from CAD 2026-04-29
-cadMass.fuselageOnly.cg_m    = [0.389, 0.0, 0.032];          % [m]  UPDATED from CAD 2026-04-29
+% Full assembly CAD — excludes battery, volume box payload, weight payload, and landing gear.
+% UPDATED 2026-05-15 from teammate's final CAD export.
+% The 300 g volume box was included in the raw CAD export (1.521 kg).
+% It is modeled as a separate point mass below, so CAD mass is reduced:
+%   m_CAD_adj = 1.521 - 0.300 = 1.221 kg
+%   x_CG_adj  = (1.521*0.376 - 0.300*0.3489) / 1.221 = 0.3830 m
+cadMass.fullAssembly.name    = 'Full Assembly CAD';
+cadMass.fullAssembly.mass_kg = 1.221;                          % [kg] box extracted
+cadMass.fullAssembly.cg_m    = [0.3827, 2.582e-4, 0.028];     % [m] recomputed
 
-cadMass.fuselageOnly.Icg_kgm2 =  [ ...
-     0.004,       8.011e-7,  -0.002; ...
-     8.011e-7,    0.05,       1.597e-7; ...
-    -0.002,       1.597e-7,   0.052 ];                        % [kg*m^2] UPDATED from CAD 2026-04-29
+cadMass.fullAssembly.Icg_kgm2 = [ ...
+     0.240,      -1.139e-4,  -0.003; ...
+    -1.139e-4,    0.078,      1.015e-5; ...
+    -0.003,       1.015e-5,   0.313 ];                         % [kg*m^2]
+
 
 % -------------------------------------------------------------------------
 % Discrete point masses
@@ -1078,20 +1085,35 @@ cadMass.fuselageOnly.Icg_kgm2 =  [ ...
 % -------------------------------------------------------------------------
 comp = repmat(makePointMass('template', 0, [0 0 0]), 0, 1);
 
-% ---- Main propulsion ----
-comp(end+1) = makePointMass('M1 Main Motor', 0.084, [0.000,  0.000,  0.000]);
-comp(end+1) = makePointMass('P1 Main Prop',  0.012, [0.000,  0.000,  0.000]);
-comp(end+1) = makePointMass('ESC1 Main ESC', 0.051, [0.06,  0.000,  0.000]);
+% ---- Main propulsion — now in full assembly CAD; zero mass here ----
+comp(end+1) = makePointMass('M1 Main Motor', 0.0, [0.000,  0.000,  0.000]);
+comp(end+1) = makePointMass('P1 Main Prop',  0.0, [0.000,  0.000,  0.000]);
+comp(end+1) = makePointMass('ESC1 Main ESC', 0.0, [0.06,   0.000,  0.000]);
 
-% ---- Battery / avionics ---- % MOVE THE BATTERY FOR BEST RESULTS!
-comp(end+1) = makePointMass('B1 Main Battery', 0.15, [0.05, 0.000, -0.01750000/2]);
-comp(end+1) = makePointMass('R1 Receiver',     0.015, [0.1, 0.000, 0.000]);
+% ---- Battery at 111 mm from nose ----
+% Solved for SM = 5% using unloaded masses: x = (1.746*0.3489 - 0.5924) / 0.150
+comp(end+1) = makePointMass('B1 Main Battery', 0.15, [0.111, 0.000, -0.01750000/2]);
 
-% ---- Payload ----
-comp(end+1) = makePointMass('Payload', Wp/g, [0.3368, 0.000, -0.01750000/2]);
+% ---- Receiver — now in full assembly CAD; zero mass here ----
+comp(end+1) = makePointMass('R1 Receiver', 0.0, [0.1, 0.000, 0.000]);
 
-% NOTE: dynamicStabilitySweep.m expects comp(1:6) to be: Motor, Prop, ESC, Battery, Receiver, Payload
-% If component order changes, update sweep functions accordingly.
+% ---- Payload components — all placed at aircraft CG (payload-at-CG strategy) ----
+% x_payload = x_CG_target = x_NP - 0.05*MAC = 0.3588 - 0.05*0.1992 = 0.3489 m
+%
+%   Volume Box    300 g — dropped during delivery; was in raw CAD, extracted above
+%   Weight Payload  800 g — stays in aircraft throughout all flights
+%   Struct Adj    remainder to reach 2.7495 kg target (misc hardware not in CAD)
+%
+%   Check: 1.221 + 0.150 + 3*0.025 + 0.300 + 0.800 + m_struct_adj = 2.7495
+%          m_struct_adj = 2.7495 - 1.221 - 0.150 - 0.075 - 0.300 - 0.800 = 0.2035 kg
+m_struct_adj_kg = 2.7495 - cadMass.fullAssembly.mass_kg - 0.150 - 3*0.025 - 0.300 - 0.800;
+
+comp(end+1) = makePointMass('Volume Box',      0.300,            [0.3489, 0.000, -0.01750000/2]);
+comp(end+1) = makePointMass('Weight Payload',  0.800,            [0.3489, 0.000, -0.01750000/2]);
+comp(end+1) = makePointMass('Struct Adj',      m_struct_adj_kg,  [0.3489, 0.000,  0.000]);
+
+% NOTE: dynamicStabilitySweep.m searches by name ('Volume Box', 'Weight Payload', 'Struct Adj').
+% comp indices: Motor(1), Prop(2), ESC(3), Battery(4), Receiver(5), VolumeBox(6), WeightPayload(7), StructAdj(8)
 
 % ---- Wing servos: geometry-aware placement ----
 eta_servo = 0.65;   % span fraction on semispan
@@ -1103,55 +1125,48 @@ x_hinge_abs = wingOut.xLE_root_m + ...
 
 z_servo_abs = wingIn.z_root_m;
 
-comp(end+1) = makePointMass('S2 Servo LHS wing', 0.0125, [x_hinge_abs, -y_servo_abs, z_servo_abs]);
-comp(end+1) = makePointMass('S3 Servo RHS wing', 0.0125, [x_hinge_abs,  y_servo_abs, z_servo_abs]);
-
-% ---- Center/back wing servo ----
-comp(end+1) = makePointMass('S1 Servo back wing', 0.0125, [x_c4_MAC + 0.020, 0.000, wingIn.z_root_m]);
-
-% ---- Vertical stabilizer servo ----
-comp(end+1) = makePointMass('S4 Servo vertical stabilizer', 0.0125, ...
+% ---- Servos — now in full assembly CAD; zero mass here ----
+comp(end+1) = makePointMass('S2 Servo LHS wing', 0.0, [x_hinge_abs, -y_servo_abs, z_servo_abs]);
+comp(end+1) = makePointMass('S3 Servo RHS wing', 0.0, [x_hinge_abs,  y_servo_abs, z_servo_abs]);
+comp(end+1) = makePointMass('S1 Servo back wing', 0.0, [x_c4_MAC + 0.020, 0.000, wingIn.z_root_m]);
+comp(end+1) = makePointMass('S4 Servo vertical stabilizer', 0.0, ...
     [vertOut.xLE_root_v_m + 0.70*vertOut.c_root_v_m, ...
      vertOut.y_root_v_m, ...
      vertOut.z_root_v_m + 0.20*vertOut.b_v_m]);
-
-% ---- Cargo bay servo ----
-comp(end+1) = makePointMass('S5 Servo cargo bay', 0.0125, [0.61980000, 0.000, 0.000]);
+comp(end+1) = makePointMass('S5 Servo cargo bay', 0.0, [0.61980000, 0.000, 0.000]);
 
 % -------------------------------------------------------------------------
-% Wing / vertical structure lumped masses
-% First-pass placeholders. Replace with better models or CAD subtraction later.
+% Wing / vertical structure — now in full assembly CAD; zero mass here.
 % -------------------------------------------------------------------------
-
-% First-pass wing structure estimate
-m_wing_struct_kg = 0.392;   % [kg] <-- replace later with model/CAD-informed value
-
-% Place wing structural mass near quarter-chord MAC of each half wing
+m_wing_struct_kg = 0.0;
 x_wing_struct = x_c4_MAC;
 y_wing_struct = wingIn.y_root_m + 0.42 * wingOut.semiSpan_m;
 z_wing_struct = wingIn.z_root_m;
 
-comp(end+1) = makePointMass('Wing structure L', 0.5*m_wing_struct_kg, [x_wing_struct, -y_wing_struct, z_wing_struct]);
-comp(end+1) = makePointMass('Wing structure R', 0.5*m_wing_struct_kg, [x_wing_struct,  y_wing_struct, z_wing_struct]);
+comp(end+1) = makePointMass('Wing structure L', 0.0, [x_wing_struct, -y_wing_struct, z_wing_struct]);
+comp(end+1) = makePointMass('Wing structure R', 0.0, [x_wing_struct,  y_wing_struct, z_wing_struct]);
 
-% First-pass vertical structure estimate
-m_vert_struct_kg = 0.048;   % [kg] total both fins — scaled from AR_v=2 baseline (mass ∝ AR_v, optimized AR_v=2.41)
-
-if vertOut.isTwin
-    m_fin_each = 0.5 * m_vert_struct_kg;
-else
-    m_fin_each = m_vert_struct_kg;
-end
+m_vert_struct_kg = 0.0;
+m_fin_each = 0.0;
 
 x_fin_struct = vertOut.xLE_root_v_m + 0.40*vertOut.c_root_v_m;
 y_fin_struct = vertOut.y_root_v_m;
 z_fin_struct = vertOut.z_root_v_m + 0.30*vertOut.b_v_m;
 
-comp(end+1) = makePointMass('Vertical structure R', m_fin_each, [x_fin_struct,  y_fin_struct, z_fin_struct]);
+comp(end+1) = makePointMass('Vertical structure R', 0.0, [x_fin_struct,  y_fin_struct, z_fin_struct]);
 
 if vertOut.isTwin
-    comp(end+1) = makePointMass('Vertical structure L', m_fin_each, [x_fin_struct, -y_fin_struct, z_fin_struct]);
+    comp(end+1) = makePointMass('Vertical structure L', 0.0, [x_fin_struct, -y_fin_struct, z_fin_struct]);
 end
+
+% -------------------------------------------------------------------------
+% Landing gear — 3 x 25 g placeholders.
+% Place nose gear forward of CG and main gear just aft of CG.
+% UPDATE these x-positions after running and confirming the CG location.
+% -------------------------------------------------------------------------
+comp(end+1) = makePointMass('LG1 Nose gear',   0.025, [0.100,  0.000, -0.050]);
+comp(end+1) = makePointMass('LG2 Main gear L', 0.025, [0.360, -0.150, -0.050]);
+comp(end+1) = makePointMass('LG3 Main gear R', 0.025, [0.360,  0.150, -0.050]);
 
 % -------------------------------------------------------------------------
 % Mass properties input
@@ -1179,30 +1194,47 @@ fprintf('Iyz = %.6f kg*m^2\n', massOut.Icg_kgm2(2,3));
 fprintf('=============================================================\n\n');
 
 
-%% ============== Unloaded Mass Case ==================
-% Remove payload only; payload location remains fixed by design
+%% ============== Three Flight States ==================
+% State 1 — Loaded:        Volume Box + Weight Payload (massOut already computed above)
+% State 2 — Box dropped:   Weight Payload only (volume box ejected at delivery)
+% State 3 — Empty flight:  Neither payload (ferry / return leg)
 
-payloadIdx = find(strcmp({comp.name}, 'Payload'), 1);
+boxIdx    = find(strcmp({comp.name}, 'Volume Box'),     1);
+wpIdx     = find(strcmp({comp.name}, 'Weight Payload'), 1);
 
-if isempty(payloadIdx)
-    error('Could not find Payload component in comp array.');
-end
+if isempty(boxIdx),  error('Could not find ''Volume Box'' in comp array.');  end
+if isempty(wpIdx),   error('Could not find ''Weight Payload'' in comp array.'); end
 
-comp_unloaded = comp;
-comp_unloaded(payloadIdx) = [];
+% State 2: drop the volume box
+comp_state2 = comp;
+comp_state2(boxIdx) = [];
 
-massIn_unloaded = struct();
-massIn_unloaded.cadBodies   = cadMass;
-massIn_unloaded.pointMasses = comp_unloaded;
+massIn_s2 = struct();
+massIn_s2.cadBodies   = cadMass;
+massIn_s2.pointMasses = comp_state2;
+massOut_s2 = aircraftMassProperties(massIn_s2);
 
-massOut_unloaded = aircraftMassProperties(massIn_unloaded);
+% State 3: drop both payloads (volume box already removed; find weight payload in trimmed array)
+comp_state3 = comp_state2;
+wpIdx3 = find(strcmp({comp_state3.name}, 'Weight Payload'), 1);
+comp_state3(wpIdx3) = [];
 
-fprintf('---------------- Unloaded Mass Case ----------------\n');
-fprintf('Total unloaded mass          = %.4f kg\n', massOut_unloaded.mass_kg);
-fprintf('Total unloaded weight        = %.4f N\n', massOut_unloaded.weight_N);
-fprintf('Unloaded aircraft CG         = [%.4f, %.4f, %.4f] m\n', ...
-    massOut_unloaded.cg_m(1), massOut_unloaded.cg_m(2), massOut_unloaded.cg_m(3));
-fprintf('----------------------------------------------------\n\n');
+massIn_s3 = struct();
+massIn_s3.cadBodies   = cadMass;
+massIn_s3.pointMasses = comp_state3;
+massOut_s3 = aircraftMassProperties(massIn_s3);
+
+% Alias for downstream code that still expects massOut_unloaded
+massOut_unloaded = massOut_s3;
+
+fprintf('---------------- Flight State Summary ----------------\n');
+fprintf('State 1 (loaded):    mass = %.4f kg,  CG_x = %.4f m\n', ...
+    massOut.mass_kg,    massOut.cg_m(1));
+fprintf('State 2 (box off):   mass = %.4f kg,  CG_x = %.4f m\n', ...
+    massOut_s2.mass_kg, massOut_s2.cg_m(1));
+fprintf('State 3 (empty):     mass = %.4f kg,  CG_x = %.4f m\n', ...
+    massOut_s3.mass_kg, massOut_s3.cg_m(1));
+fprintf('------------------------------------------------------\n\n');
 
 %% ============== CG as % MAC ===============
 fprintf('================ CG Location (% MAC) =================\n');
@@ -1637,6 +1669,94 @@ else
 end
 fprintf('=============================================================\n\n');
 
+%% =============== Static Margin (AVL Neutral Point) ==============
+% Re-compute SM for all three flight states using the AVL neutral point.
+% xNP_AVL is back-derived from the loaded-case AVL SM so the NP is consistent.
+fprintf('================ STATIC MARGIN (AVL Neutral Point) =================\n');
+
+xNP_AVL = massOut.cg_m(1) + dynOut.SM_pct/100 * wingOut.MAC_m;  % [m]
+MAC_m   = wingOut.MAC_m;
+
+SM_s1 = (xNP_AVL - massOut.cg_m(1))    / MAC_m * 100;
+SM_s2 = (xNP_AVL - massOut_s2.cg_m(1)) / MAC_m * 100;
+SM_s3 = (xNP_AVL - massOut_s3.cg_m(1)) / MAC_m * 100;
+
+fprintf('  AVL Neutral point x_NP        = %.4f m  (%.2f %% MAC)\n', ...
+    xNP_AVL, (xNP_AVL - wingOut.xLE_MAC_m)/MAC_m*100);
+fprintf('\n');
+fprintf('  State 1 — Loaded (both payloads):\n');
+fprintf('    Total mass                  = %.4f kg\n', massOut.mass_kg);
+fprintf('    CG_x                        = %.4f m  (%.2f %% MAC)\n', ...
+    massOut.cg_m(1), (massOut.cg_m(1) - wingOut.xLE_MAC_m)/MAC_m*100);
+fprintf('    Static margin               = %.2f %%\n', SM_s1);
+fprintf('\n');
+fprintf('  State 2 — Box dropped (weight payload only):\n');
+fprintf('    Total mass                  = %.4f kg\n', massOut_s2.mass_kg);
+fprintf('    CG_x                        = %.4f m  (%.2f %% MAC)\n', ...
+    massOut_s2.cg_m(1), (massOut_s2.cg_m(1) - wingOut.xLE_MAC_m)/MAC_m*100);
+fprintf('    Static margin               = %.2f %%\n', SM_s2);
+fprintf('\n');
+fprintf('  State 3 — Empty (no payload):\n');
+fprintf('    Total mass                  = %.4f kg\n', massOut_s3.mass_kg);
+fprintf('    CG_x                        = %.4f m  (%.2f %% MAC)\n', ...
+    massOut_s3.cg_m(1), (massOut_s3.cg_m(1) - wingOut.xLE_MAC_m)/MAC_m*100);
+fprintf('    Static margin               = %.2f %%\n', SM_s3);
+fprintf('=====================================================================\n\n');
+
+%% =============== SM vs Battery Position Plot ==============
+% Moving the battery is the primary CG tuning lever.
+% NP is fixed (aero surfaces unchanged); only CG shifts with battery x.
+% x_CG(x_b) = x_CG_ref + (m_batt/m_total)*(x_b - x_b_ref)
+
+m_batt_plot  = 0.150;              % [kg]
+x_batt_ref   = 0.111;             % [m] current battery x-position
+x_batt_vec   = linspace(0, Lf, 300);   % [m] sweep full fuselage length
+
+x_CG_vec_s1 = massOut.cg_m(1)    + (m_batt_plot / massOut.mass_kg)    .* (x_batt_vec - x_batt_ref);
+x_CG_vec_s3 = massOut_s3.cg_m(1) + (m_batt_plot / massOut_s3.mass_kg) .* (x_batt_vec - x_batt_ref);
+
+SM_vec_s1 = (xNP_AVL - x_CG_vec_s1) / MAC_m * 100;
+SM_vec_s3 = (xNP_AVL - x_CG_vec_s3) / MAC_m * 100;
+
+figure('Name','SM vs Battery Position','Color','w','Position',[100 100 800 480]);
+hold on;
+
+% Target band shading
+patch([0 Lf Lf 0]*1000, [5 5 10 10], [0.6 1.0 0.6], 'FaceAlpha', 0.18, 'EdgeColor', 'none');
+
+% SM curves
+plot(x_batt_vec*1000, SM_vec_s1, 'b-',  'LineWidth', 2.0, 'DisplayName', 'State 1 — Loaded (2.75 kg)');
+plot(x_batt_vec*1000, SM_vec_s3, 'r--', 'LineWidth', 1.8, 'DisplayName', 'State 3 — Empty (1.65 kg)');
+
+% Target band lines
+yline(5,  'g-',  'LineWidth', 1.2, 'Alpha', 0.8);
+yline(10, 'g-',  'LineWidth', 1.2, 'Alpha', 0.8);
+yline(0,  'k:',  'LineWidth', 1.0);
+
+% Current battery marker
+plot(x_batt_ref*1000, SM_s1, 'bo', 'MarkerFaceColor', 'b', 'MarkerSize', 9, 'DisplayName', 'Current battery (State 1)');
+plot(x_batt_ref*1000, SM_s3, 'rs', 'MarkerFaceColor', 'r', 'MarkerSize', 9, 'DisplayName', 'Current battery (State 3)');
+
+text(x_batt_ref*1000 + 12, SM_s1 + 0.3, ...
+    sprintf('x = %d mm\nSM = %.1f%%', round(x_batt_ref*1000), SM_s1), ...
+    'FontSize', 8.5, 'Color', 'b', 'VerticalAlignment', 'bottom');
+
+text(x_batt_ref*1000 + 12, SM_s3 - 0.3, ...
+    sprintf('SM = %.1f%%', SM_s3), ...
+    'FontSize', 8.5, 'Color', 'r', 'VerticalAlignment', 'top');
+
+% Label the target band
+text(Lf*1000*0.02, 7.5, '5–10% target band', 'FontSize', 8, 'Color', [0.1 0.5 0.1], ...
+    'VerticalAlignment', 'middle');
+
+xlabel('Battery x-position [mm from nose]', 'FontSize', 11);
+ylabel('Static Margin [%]',                 'FontSize', 11);
+title('Static Margin vs. Battery x-Position (AVL Neutral Point)', ...
+    'FontSize', 12, 'FontWeight', 'bold');
+legend('Location', 'northeast', 'FontSize', 9);
+grid on; box on;
+xlim([0, Lf*1000]);
+
 %% =============== SM Correction Advisor ==============
 fprintf('\n================ SM CORRECTION ADVISOR =================\n');
 
@@ -2058,7 +2178,7 @@ fprintf('  Actual gross weight          = %.1f g\n', Wg_physics/g*1000);
 
 % ---- CG / stability setup for sweep ----
 % xNP is fixed (aero surfaces don't change); derive it from current AVL SM.
-x_payload_m      = 0.2894;                              % [m] payload CG x-location (matches loaded CG)
+x_payload_m      = 0.3489;                              % [m] payload CG x-location — at aircraft CG (payload-at-CG strategy)
 m_total_kg       = massOut.mass_kg;                     % [kg]
 m_no_payload_kg  = m_total_kg - Wp/g;                   % [kg] aircraft without payload
 x_cg_total       = massOut.cg_m(1);                     % [m] current loaded CG
@@ -2312,7 +2432,7 @@ if runProfitOpt
     % ---- fixed mass components (indices 1-6: motor/prop/ESC/batt/rx/payload) ----
     % WARNING: do not reorder comp(1:6) — the optimizer assumes this slice.
     optIn.cadMass        = cadMass;
-    optIn.m_fuse_ref_kg  = cadMass.fuselageOnly.mass_kg;
+    optIn.m_fuse_ref_kg  = cadMass.fullAssembly.mass_kg;
     optIn.compFixed      = comp(1:6);
     optIn.eta_servo      = eta_servo;
 
