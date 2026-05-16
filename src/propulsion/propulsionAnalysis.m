@@ -145,6 +145,9 @@ else
 end
 D_m = D_in * 0.0254;
 
+rho_APC   = 1.225;                 % [kg/m³] APC simulation reference (ISA sea level)
+rho_ratio = propIn.rho / rho_APC; % [-] density correction: scales prop T and Q
+
 txt = fileread(filename);
 lines = splitlines(string(txt));
 
@@ -208,7 +211,7 @@ omega_guess = 9000 * 2*pi/60;
 for i = 1:Nv
     Vinf = V_vec(i);
 
-    balanceFun = @(omega) localBalance(omega, Vinf, D_m, Qm, F_Q);
+    balanceFun = @(omega) localBalance(omega, Vinf, D_m, Qm, F_Q, rho_ratio);
 
     try
         omega_sol = fzero(balanceFun, omega_guess);
@@ -218,9 +221,9 @@ for i = 1:Nv
             continue;
         end
 
-        J_sol = Vinf / (n_sol * D_m);
-        Qp_sol = F_Q(n_sol, J_sol);
-        T_sol = F_T(n_sol, J_sol);
+        J_sol  = Vinf / (n_sol * D_m);
+        Qp_sol = F_Q(n_sol, J_sol) * rho_ratio;  % scale to actual density
+        T_sol  = F_T(n_sol, J_sol) * rho_ratio;  % scale to actual density
         I_sol = Im(omega_sol);
 
         if ~isfinite(J_sol) || ~isfinite(Qp_sol) || ~isfinite(T_sol) || ~isfinite(I_sol)
@@ -319,7 +322,7 @@ legend('Current draw', 'Current limit', 'Location', 'best');
 
 end
 
-function val = localBalance(omega, Vinf, D_m, Qm, F_Q)
+function val = localBalance(omega, Vinf, D_m, Qm, F_Q, rho_ratio)
     n = omega / (2*pi);
 
     if ~isfinite(n) || n <= 0
@@ -334,5 +337,5 @@ function val = localBalance(omega, Vinf, D_m, Qm, F_Q)
         return;
     end
 
-    val = Qm(omega) - F_Q(n, J);
+    val = Qm(omega) - F_Q(n, J) * rho_ratio;
 end
