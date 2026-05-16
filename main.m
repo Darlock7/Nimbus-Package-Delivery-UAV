@@ -1718,7 +1718,7 @@ x_CG_vec_s3 = massOut_s3.cg_m(1) + (m_batt_plot / massOut_s3.mass_kg) .* (x_batt
 SM_vec_s1 = (xNP_AVL - x_CG_vec_s1) / MAC_m * 100;
 SM_vec_s3 = (xNP_AVL - x_CG_vec_s3) / MAC_m * 100;
 
-figure('Name','SM vs Battery Position','Color','w','Position',[100 100 800 480]);
+figure('Name','SM vs Battery Position','Color','w','NumberTitle','off');
 hold on;
 
 % Target band shading
