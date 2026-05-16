@@ -162,7 +162,7 @@ Wf = 0.1491;                   % [m] max body width — profit optimizer (2 × c
 
 % ---- wetted areas (scaled from geometry; wing/fin overwritten after wingOut/vertOut) ----
 Swet_wing = 0.91825686;        % [m^2] placeholder — overwritten after wingGeometryDesign
-Swet_fuse = 0.26287392;  % [m^2] scales with fuselage box area
+Swet_fuse = 0.0;               % [m^2] flying wing: centerbody surfaces already in Swet_wing=2.04*S_ref
 Swet_fin  = 0.08059852;        % [m^2] placeholder — overwritten after verticalSurfaceDesign
 Hf = 0.18293818;               % [m] max body height
 
@@ -174,6 +174,13 @@ xc = 0.30;                 % [-] x/c location of max thickness
 Q_wing = 1.10;             % [-]
 Q_fuse = 1.10;             % [-]
 Q_fin  = 1.10;             % [-]
+
+% ---- misc drag: motor (tractor nose) + 3 landing gear wheels ----
+D_motor_m  = 0.035;                        % [m] motor bell diameter (~35mm outrunner, 1100KV 3S)
+A_motor_m2 = pi/4 * D_motor_m^2;          % [m^2] motor frontal area
+D_wheel_m  = 0.060;                        % [m] wheel diameter (~60mm RC fixed gear)
+W_wheel_m  = 0.010;                        % [m] wheel width (~10mm)
+A_gear_m2  = 3 * D_wheel_m * W_wheel_m;   % [m^2] total frontal area (3 wheels)
 
 % ---- plot settings ----
 alphaPolar_deg = -12:0.25:16;   % [deg]
@@ -982,7 +989,7 @@ aeroIn = struct();
 
 % -------- Atmosphere / flight condition --------
 aeroIn.rho_kgm3      = roh;          % [kg/m^3]
-aeroIn.mu_Pas        = 1.789e-5;     % [Pa*s]
+aeroIn.mu_Pas        = mu;            % [Pa*s] Sutherland at T=286 K (competition conditions)
 aeroIn.V_cruise_mps  = V_cruise;     % [m/s]
 aeroIn.W_N           = Wg;           % [N]
 
@@ -1039,6 +1046,18 @@ fprintf('CD0_wing                     = %.5f\n', aeroOut.CD0_wing);
 fprintf('CD0_fuse                     = %.5f\n', aeroOut.CD0_fuse);
 fprintf('CD0_fin                      = %.5f\n', aeroOut.CD0_fin);
 fprintf('Total CD0                    = %.5f\n', aeroOut.CD0);
+
+% ---- misc drag additions (slide 30: motor + landing gear) ----
+CD_motor = 0.34 * A_motor_m2 / S_ref;   % tractor motor at nose, CD_frontal=0.34
+CD_gear  = 1.01 * A_gear_m2  / S_ref;   % 3 fixed wheels,      CD_frontal=1.01
+CD0      = CD0 + CD_motor + CD_gear;
+fprintf('CD_motor (tractor nose)      = %.5f\n', CD_motor);
+fprintf('CD_gear  (3 fixed wheels)    = %.5f\n', CD_gear);
+fprintf('CD0 total (incl misc)        = %.5f\n', CD0);
+k_induced = 1 / (pi * e * AR);
+CD_cruise_total = CD0 + k_induced * aeroOut.CL_cruise^2;
+fprintf('L/D cruise (incl misc drag)  = %.5f\n', aeroOut.CL_cruise / CD_cruise_total);
+
 fprintf('CLalpha_2D_avg               = %.5f per deg\n', aeroOut.CLalpha_2D_avg_perDeg);
 fprintf('CLalpha_3D                   = %.5f per deg\n', aeroOut.CLalpha_3D_perDeg);
 fprintf('alphaL0_avg                  = %.5f deg\n', aeroOut.alphaL0_avg_deg);
