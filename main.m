@@ -76,7 +76,7 @@ diary(logFile);
 
 %% =================== Run Flags =========================
 % Figures
-showPlots       = true;  % true = show all figures throughout the script
+showPlots       = false;  % true = show all figures throughout the script
 
 % AVL geometry viewer (opens interactive Terminal window — requires manual close)
 viewGeometry    = false;   % true = open AVL 3D viewer before stability run
@@ -341,8 +341,8 @@ mission.n_turn            = 1.5;       % [-] working @ 1.2
 % -------- Climb / descent design choices --------
 mission.delta_h           = delta_h;   % [m] altitude gain
 
-mission.V_climb_mps       = 11.0;      % [m/s] forward climb speed
-mission.gamma_climb_deg   = 6.0;       % [deg] UPDATED (was too aggressive)
+mission.V_climb_mps       = 15.0;      % [m/s] 1.2 x V_stall_actual (was 11 m/s — below stall)
+mission.gamma_climb_deg   = 6.0;       % [deg]
 
 mission.V_descent_mps     = 30.0;      % [m/s]
 mission.gamma_descent_deg = 12.0;      % [deg]
@@ -424,7 +424,7 @@ sIn.V_climb_mps = mission.V_climb_mps;   % [m/s]
 sIn.G_climb     = mission.G_climb;       % [-]
 
 % Maneuver sizing
-sIn.V_turn_mps  = 11;     % [m/s]
+sIn.V_turn_mps  = 16.0;   % [m/s] above turn stall (V_stall*sqrt(n)=15.5 m/s; was 11 — below stall)
 sIn.n_maneuver  = mission.n_turn;        % [-]
 
 % Takeoff sizing from mission geometry
