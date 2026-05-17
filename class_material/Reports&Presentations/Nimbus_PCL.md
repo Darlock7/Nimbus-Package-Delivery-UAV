@@ -143,12 +143,12 @@
 
 1. Point aircraft **directly into wind**
 2. Advance throttle to **full smoothly** — hold straight with rudder
-3. Aircraft lifts off near **14.9 m/s** (~30 mph) — ground incidence provides 3.2° nose-up already
-4. Apply **minimal** back-stick rotation (~2.5 deg only) — do not pull aggressively
+3. Aircraft lifts off near **14.9 m/s** (~30 mph)
+4. At liftoff: **light back-stick only** — the gear geometry already holds the aircraft 3.2° nose-up on the ground, so only ~2.5° of additional pitch rotation is needed. A gentle touch is enough; a hard pull will over-rotate and stall.
 5. Maintain **+6 deg** climb angle at **11 m/s** climb speed
-6. Retract/confirm no gear issues — aircraft climbs cleanly
+6. Climb out smoothly — do not chase altitude aggressively
 
-> **Note:** Due to ground incidence (3.2° nose-up at rest), the aircraft naturally rotates onto takeoff angle. Over-rotating will cause early stall.
+> **Rotation rule of thumb:** If the aircraft feels like it wants to fly off the runway on its own — let it. The gear gives you most of the rotation for free.
 
 ---
 
