@@ -345,7 +345,7 @@ fclose(fid);
 
     % use AVL totals if they look reasonable, else use input values
     if ~isnan(CL_avl) && abs(CL_avl) > 1e-4,  CL0 = CL_avl; end
-    if ~isnan(CD_avl) && abs(CD_avl) > 1e-5,  CD0 = CD_avl; end
+    if ~isnan(CD_avl) && abs(CD_avl) > 1e-5,  CD0 = dynIn.CD0 + CD_avl; end  % profile + induced
 
     derivs.CLa=CLa; derivs.CDa=CDa; derivs.Cma=Cma;
     derivs.CLq=CLq; derivs.CDq=CDq; derivs.Cmq=Cmq;

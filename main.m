@@ -76,7 +76,7 @@ diary(logFile);
 
 %% =================== Run Flags =========================
 % Figures
-showPlots       = false;  % true = show all figures throughout the script
+showPlots       = true;  % true = show all figures throughout the script
 
 % AVL geometry viewer (opens interactive Terminal window — requires manual close)
 viewGeometry    = false;   % true = open AVL 3D viewer before stability run
@@ -176,11 +176,12 @@ Q_fuse = 1.10;             % [-]
 Q_fin  = 1.10;             % [-]
 
 % ---- misc drag: motor (tractor nose) + 3 landing gear wheels ----
-D_motor_m  = 0.035;                        % [m] motor bell diameter (~35mm outrunner, 1100KV 3S)
-A_motor_m2 = pi/4 * D_motor_m^2;          % [m^2] motor frontal area
-D_wheel_m  = 0.060;                        % [m] wheel diameter (~60mm RC fixed gear)
-W_wheel_m  = 0.010;                        % [m] wheel width (~10mm)
-A_gear_m2  = 3 * D_wheel_m * W_wheel_m;   % [m^2] total frontal area (3 wheels)
+D_motor_m      = 0.035;                                              % [m] motor bell diameter (~35mm outrunner, 1100KV 3S)
+A_motor_m2     = pi/4 * D_motor_m^2;                                % [m^2] motor frontal area
+D_main_wheel_m = 0.100;                                              % [m] main wheel diameter (100mm — sized for prop/fin clearance)
+D_nose_wheel_m = 0.075;                                              % [m] nose wheel diameter (75mm)
+W_wheel_m      = 0.012;                                              % [m] wheel width (~12mm)
+A_gear_m2      = 2*D_main_wheel_m*W_wheel_m + D_nose_wheel_m*W_wheel_m;  % [m^2] 2 main + 1 nose
 
 % ---- plot settings ----
 alphaPolar_deg = -12:0.25:16;   % [deg]
@@ -1179,13 +1180,31 @@ if vertOut.isTwin
 end
 
 % -------------------------------------------------------------------------
-% Landing gear — 3 x 25 g placeholders.
-% Place nose gear forward of CG and main gear just aft of CG.
-% UPDATE these x-positions after running and confirming the CG location.
+% ---- Landing gear — designed to RC pilot rules ----
+%
+% Design constraints applied (x_CG=0.3496 m, h_main=0.140 m):
+%
+%   (1) Trike tip-back angle = 15°:
+%       x_MG = x_CG + h_main*tan(15°) = 0.3496 + 0.140*0.268 = 0.387 m
+%
+%   (2) Prop clearance ≥ 38mm/1.5" min:
+%       h_hub = h_main + z_motor = 0.140+0.030 = 0.170 m
+%       clearance = 170-127 = 43 mm = 1.7"  ✓
+%
+%   (3) Fin/tail strike angle > alpha_TO (5.7°) + 2° margin:
+%       fin TE at x=0.689m, clearance=97mm → strike=17.8° >> 7.7°  ✓
+%
+%   (4) Ground incidence ≈ 3° nose-up (reduces rotation needed at liftoff):
+%       h_nose = h_main - (x_MG-x_nose)*sin(3°) = 0.140-0.017 = 0.123 m
+%
+%   Wheel sizes: main=100mm dia (wheel center z=-0.090m → contact z=-0.140m)
+%                nose=75mm dia  (wheel center z=-0.085m → contact z=-0.123m)
+%   Nose gear load: F_nose = W*(x_MG-x_CG)/(x_MG-x_nose) = 12% of W  ✓
+%   Lateral stability angle: arctan(0.150/0.150) = 45°  ✓
 % -------------------------------------------------------------------------
-comp(end+1) = makePointMass('LG1 Nose gear',   0.025, [0.100,  0.000, -0.050]);
-comp(end+1) = makePointMass('LG2 Main gear L', 0.025, [0.360, -0.150, -0.050]);
-comp(end+1) = makePointMass('LG3 Main gear R', 0.025, [0.360,  0.150, -0.050]);
+comp(end+1) = makePointMass('LG1 Nose gear',   0.025, [0.075,  0.000, -0.085]);
+comp(end+1) = makePointMass('LG2 Main gear L', 0.040, [0.387, -0.150, -0.090]);
+comp(end+1) = makePointMass('LG3 Main gear R', 0.040, [0.387,  0.150, -0.090]);
 
 % -------------------------------------------------------------------------
 % Mass properties input
@@ -1355,6 +1374,65 @@ else
     fprintf('*** WARNING: ground roll exceeds runway by %.1f m ***\n', SG - mission.runwayLength_m);
 end
 fprintf('============================================================================\n\n');
+
+%% ===== Landing Gear / Takeoff AoA Check =====
+fprintf('===== LANDING GEAR / TAKEOFF AoA CHECK =====\n');
+
+% Gear contact heights above body reference plane (z=0 = wing chord plane)
+LG_x_nose_m   = 0.075;                                % [m] nose gear x from nose
+LG_x_main_m   = 0.387;                                % [m] main gear x from nose
+LG_h_main_m   = 0.090 + D_main_wheel_m/2;             % [m] main contact height (hub offset + radius)
+LG_h_nose_m   = 0.085 + D_nose_wheel_m/2;             % [m] nose contact height
+
+% Ground incidence: nose-up attitude of aircraft when sitting on all three wheels
+LG_theta_gi_deg = atand((LG_h_main_m - LG_h_nose_m) / (LG_x_main_m - LG_x_nose_m));
+fprintf('  Main gear height (ref to contact)  = %.1f mm\n', LG_h_main_m*1e3);
+fprintf('  Nose gear height (ref to contact)  = %.1f mm\n', LG_h_nose_m*1e3);
+fprintf('  Ground incidence (static nose-up)  = %.1f deg\n', LG_theta_gi_deg);
+
+% Tip-back angle: arctan(arm_x / arm_z) — must be <= 15 deg per RC pilot rule
+LG_tipback_deg = atand((LG_x_main_m - massOut.cg_m(1)) / LG_h_main_m);
+if LG_tipback_deg <= 15
+    fprintf('  Tip-back angle (main gear / CG)    = %.1f deg  OK  (<=15 deg)\n', LG_tipback_deg);
+else
+    fprintf('  *** Tip-back angle                 = %.1f deg  FAIL (>15 deg) ***\n', LG_tipback_deg);
+end
+
+% Required takeoff AoA at 0.8*CLmax
+LG_CL_TO      = 0.8 * aeroOut.CLmax_3D;
+LG_alpha_TO   = aeroOut.alphaL0_avg_deg + LG_CL_TO / aeroOut.CLalpha_3D_perDeg;
+LG_rot_needed = LG_alpha_TO - LG_theta_gi_deg;        % rotation pilot must apply at liftoff
+fprintf('  Required takeoff AoA (0.8*CLmax)   = %.1f deg\n', LG_alpha_TO);
+fprintf('  Already provided by ground incid.  = %.1f deg\n', LG_theta_gi_deg);
+fprintf('  Pilot rotation needed at liftoff   = %.1f deg\n', LG_rot_needed);
+
+% Fin strike angle: rotation at which fin TE would contact the ground
+% Pivot = main gear contact; fin TE in body frame = (xLE_bot + c_tip, z_bottom_v)
+LG_x_fin_TE   = vertOut.xLE_bottom_v_m + vertOut.c_tip_v_m;   % [m] fin tip TE x
+LG_fin_clr_m  = LG_h_main_m + vertOut.z_bottom_v_m;           % [m] fin tip height above ground at rest
+LG_strike_deg = atand(LG_fin_clr_m / (LG_x_fin_TE - LG_x_main_m));  % exact rotation to strike
+LG_margin_deg = LG_strike_deg - LG_alpha_TO;
+fprintf('  Fin tip clearance on ground        = %.1f mm\n', LG_fin_clr_m*1e3);
+fprintf('  Fin strike angle                   = %.1f deg\n', LG_strike_deg);
+if LG_margin_deg >= 2.0
+    fprintf('  Fin strike margin vs alpha_TO      = %.1f deg  OK  (>=2 deg)\n', LG_margin_deg);
+else
+    fprintf('  *** Fin strike margin vs alpha_TO  = %.1f deg  FAIL (need >=2 deg) ***\n', LG_margin_deg);
+end
+
+% Prop clearance: motor hub 30 mm above wing plane, 10-inch prop
+LG_prop_r_m  = propIn.D_in * 0.0254 / 2;                      % [m] prop radius from input
+LG_z_hub_m   = 0.030;                                          % [m] motor hub above body ref
+LG_hub_gnd_m = LG_h_main_m + LG_z_hub_m;                      % [m] hub height above ground
+LG_clr_mm    = (LG_hub_gnd_m - LG_prop_r_m) * 1e3;            % [mm]
+if LG_clr_mm >= 38.1
+    fprintf('  Prop clearance                     = %.0f mm  (%.1f in)  OK  (>=38mm)\n', ...
+        LG_clr_mm, LG_clr_mm/25.4);
+else
+    fprintf('  *** Prop clearance                 = %.0f mm  (%.1f in)  FAIL (need >=38mm) ***\n', ...
+        LG_clr_mm, LG_clr_mm/25.4);
+end
+fprintf('=============================================\n\n');
 
 % Extract actual performance (DO NOT FEED BACK)
 
@@ -1642,7 +1720,7 @@ dynIn.cb_xLE_m   = cb_join_distance;  % [m] fuselage LE x-position (motor at ori
 % Flight condition
 dynIn.V_mps         = V_cruise;
 dynIn.rho_kgm3      = roh;
-dynIn.CD0           = aeroOut.CD0;
+dynIn.CD0           = CD0;           % total CD0 incl. motor + gear (aeroOut.CD0 is aero-only)
 dynIn.CL_trim       = aeroOut.CL_cruise;
 dynIn.alpha_trim_deg = aeroOut.alpha_cruise_deg;
 
