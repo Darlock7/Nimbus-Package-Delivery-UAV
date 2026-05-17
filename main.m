@@ -76,7 +76,7 @@ diary(logFile);
 
 %% =================== Run Flags =========================
 % Figures
-showPlots       = true;  % true = show all figures throughout the script
+showPlots       = false;  % true = show all figures throughout the script
 
 % AVL geometry viewer (opens interactive Terminal window — requires manual close)
 viewGeometry    = false;   % true = open AVL 3D viewer before stability run
@@ -1293,7 +1293,7 @@ perfIn.W_N      = massOut.weight_N;    % [N]
 perfIn.Sref_m2  = S_ref;               % [m^2]
 
 % Refined aero
-perfIn.CD0   = aeroOut.CD0;            % [-]
+perfIn.CD0   = CD0;                    % [-] total CD0 incl. motor + gear
 perfIn.CLmax = aeroOut.CLmax_3D;       % [-]
 perfIn.e     = e;                      % [-]
 perfIn.AR    = AR;                     % [-]
@@ -1329,6 +1329,32 @@ fprintf('Drag at climb speed           = %.4f N\n', perfOut.Dclimb_N);
 fprintf('Max climb gradient at Vclimb  = %.5f\n', perfOut.G_climb_max);
 fprintf('Max climb rate at Vclimb      = %.5f m/s\n', perfOut.ROC_climb_max_mps);
 fprintf('============================================================\n\n');
+
+%% ---- Takeoff ground roll — Nicolai slide method ----
+% Steps: CL_TO=0.8*CLmax, VTO, a_mean at 0.7*VTO with alpha=0, SG=VTO²/(2*a_mean)
+V_eval_TO = 0.7 * perfOut.VTO_mps;                                                % [m/s]
+q_eval_TO = 0.5 * roh * V_eval_TO^2;                                              % [Pa]
+T_eval_TO = interp1(propOut.V_vec_mps, propOut.T_vec_N, V_eval_TO, 'linear', 'extrap'); % [N]
+D_eval_TO = q_eval_TO * S_ref * CD0;                                               % [N] alpha=0 → L≈0, CD≈CD0
+FC_roll   = 0.03;                                                                  % [-] rolling friction (slide)
+a_mean_TO = (g / massOut.weight_N) * ((T_eval_TO - D_eval_TO) - FC_roll * massOut.weight_N); % [m/s²]
+SG        = perfOut.VTO_mps^2 / (2 * a_mean_TO);                                  % [m]
+
+fprintf('================ Takeoff Ground Roll (Nicolai Slide Method) ================\n');
+fprintf('CL_TO (0.8*CLmax)             = %.4f\n',    perfOut.CLTO);
+fprintf('VTO                           = %.4f m/s\n', perfOut.VTO_mps);
+fprintf('V_eval (0.7*VTO)              = %.4f m/s\n', V_eval_TO);
+fprintf('T at 0.7*VTO                  = %.4f N\n',   T_eval_TO);
+fprintf('D at 0.7*VTO (alpha=0)        = %.4f N\n',   D_eval_TO);
+fprintf('Mean acceleration a_mean      = %.4f m/s^2\n', a_mean_TO);
+fprintf('Ground roll SG                = %.2f m\n',   SG);
+fprintf('Runway available              = %.2f m\n',   mission.runwayLength_m);
+if isfinite(SG) && SG <= mission.runwayLength_m
+    fprintf('Takeoff ground roll: OK  (margin = %.1f m)\n', mission.runwayLength_m - SG);
+else
+    fprintf('*** WARNING: ground roll exceeds runway by %.1f m ***\n', SG - mission.runwayLength_m);
+end
+fprintf('============================================================================\n\n');
 
 % Extract actual performance (DO NOT FEED BACK)
 
