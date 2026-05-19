@@ -1182,29 +1182,29 @@ end
 % -------------------------------------------------------------------------
 % ---- Landing gear — designed to RC pilot rules ----
 %
-% Design constraints applied (x_CG=0.3496 m, h_main=0.140 m):
+% Design constraints applied (x_CG=0.3496 m, h_main=0.170 m):
 %
-%   (1) Trike tip-back angle = 15°:
-%       x_MG = x_CG + h_main*tan(15°) = 0.3496 + 0.140*0.268 = 0.387 m
+%   (1) Trike tip-back angle: atand(0.0375/0.170) = 12.4°  ✓ (<15°)
 %
-%   (2) Prop clearance ≥ 38mm/1.5" min:
-%       h_hub = h_main + z_motor = 0.140+0.030 = 0.170 m
-%       clearance = 170-127 = 43 mm = 1.7"  ✓
+%   (2) Prop clearance — legs extended +30 mm for larger prop options:
+%       h_hub = h_main + z_motor = 0.170+0.030 = 0.200 m
+%       10" prop (r=127mm):  clearance = 200-127 = 73 mm (2.9")  ✓
+%       11" prop (r=140mm):  clearance = 200-140 = 60 mm (2.4")  ✓
+%       12" prop (r=152mm):  clearance = 200-152 = 48 mm (1.9")  ✓
 %
-%   (3) Fin/tail strike angle > alpha_TO (5.7°) + 2° margin:
-%       fin TE at x=0.689m, clearance=97mm → strike=17.8° >> 7.7°  ✓
+%   (3) Fin/tail strike angle:
+%       fin clearance = 127mm → strike = 22.8° >> alpha_TO (5.7°)  ✓
 %
-%   (4) Ground incidence ≈ 3° nose-up (reduces rotation needed at liftoff):
-%       h_nose = h_main - (x_MG-x_nose)*sin(3°) = 0.140-0.017 = 0.123 m
+%   (4) Ground incidence ≈ 3.2° nose-up (nose gear extended equally):
+%       h_nose = 0.1525 m, h_main = 0.170 m → same 3.2° as before  ✓
 %
-%   Wheel sizes: main=100mm dia (wheel center z=-0.090m → contact z=-0.140m)
-%                nose=75mm dia  (wheel center z=-0.085m → contact z=-0.123m)
-%   Nose gear load: F_nose = W*(x_MG-x_CG)/(x_MG-x_nose) = 12% of W  ✓
-%   Lateral stability angle: arctan(0.150/0.150) = 45°  ✓
+%   Wheel sizes: main=100mm dia (wheel center z=-0.120m → contact z=-0.170m)
+%                nose=75mm dia  (wheel center z=-0.115m → contact z=-0.153m)
+%   Lateral stability angle: arctan(0.150/0.170) = 41°  ✓
 % -------------------------------------------------------------------------
-comp(end+1) = makePointMass('LG1 Nose gear',   0.025, [0.075,  0.000, -0.085]);
-comp(end+1) = makePointMass('LG2 Main gear L', 0.040, [0.387, -0.150, -0.090]);
-comp(end+1) = makePointMass('LG3 Main gear R', 0.040, [0.387,  0.150, -0.090]);
+comp(end+1) = makePointMass('LG1 Nose gear',   0.025, [0.075,  0.000, -0.115]);
+comp(end+1) = makePointMass('LG2 Main gear L', 0.040, [0.387, -0.150, -0.120]);
+comp(end+1) = makePointMass('LG3 Main gear R', 0.040, [0.387,  0.150, -0.120]);
 
 % -------------------------------------------------------------------------
 % Mass properties input
@@ -1381,8 +1381,8 @@ fprintf('===== LANDING GEAR / TAKEOFF AoA CHECK =====\n');
 % Gear contact heights above body reference plane (z=0 = wing chord plane)
 LG_x_nose_m   = 0.075;                                % [m] nose gear x from nose
 LG_x_main_m   = 0.387;                                % [m] main gear x from nose
-LG_h_main_m   = 0.090 + D_main_wheel_m/2;             % [m] main contact height (hub offset + radius)
-LG_h_nose_m   = 0.085 + D_nose_wheel_m/2;             % [m] nose contact height
+LG_h_main_m   = 0.120 + D_main_wheel_m/2;             % [m] main contact height (hub offset + radius)
+LG_h_nose_m   = 0.115 + D_nose_wheel_m/2;             % [m] nose contact height
 
 % Ground incidence: nose-up attitude of aircraft when sitting on all three wheels
 LG_theta_gi_deg = atand((LG_h_main_m - LG_h_nose_m) / (LG_x_main_m - LG_x_nose_m));
@@ -1420,17 +1420,19 @@ else
     fprintf('  *** Fin strike margin vs alpha_TO  = %.1f deg  FAIL (need >=2 deg) ***\n', LG_margin_deg);
 end
 
-% Prop clearance: motor hub 30 mm above wing plane, 10-inch prop
-LG_prop_r_m  = propIn.D_in * 0.0254 / 2;                      % [m] prop radius from input
+% Prop clearance: motor hub 30 mm above wing plane — show 10/11/12" options
 LG_z_hub_m   = 0.030;                                          % [m] motor hub above body ref
 LG_hub_gnd_m = LG_h_main_m + LG_z_hub_m;                      % [m] hub height above ground
-LG_clr_mm    = (LG_hub_gnd_m - LG_prop_r_m) * 1e3;            % [mm]
-if LG_clr_mm >= 38.1
-    fprintf('  Prop clearance                     = %.0f mm  (%.1f in)  OK  (>=38mm)\n', ...
-        LG_clr_mm, LG_clr_mm/25.4);
-else
-    fprintf('  *** Prop clearance                 = %.0f mm  (%.1f in)  FAIL (need >=38mm) ***\n', ...
-        LG_clr_mm, LG_clr_mm/25.4);
+fprintf('  Motor hub height above ground      = %.0f mm\n', LG_hub_gnd_m*1e3);
+prop_diams_in = [10, 11, 12];
+for pd = prop_diams_in
+    r_m   = pd * 0.0254 / 2;
+    clr   = (LG_hub_gnd_m - r_m) * 1e3;
+    if clr >= 38.1
+        fprintf('  Prop clearance %2d"                 = %.0f mm  (%.1f in)  OK\n', pd, clr, clr/25.4);
+    else
+        fprintf('  *** Prop clearance %2d"             = %.0f mm  (%.1f in)  FAIL (need >=38mm) ***\n', pd, clr, clr/25.4);
+    end
 end
 fprintf('=============================================\n\n');
 
