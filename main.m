@@ -76,7 +76,7 @@ diary(logFile);
 
 %% =================== Run Flags =========================
 % Figures
-showPlots       = true;  % true = show all figures throughout the script
+showPlots       = false;  % true = show all figures throughout the script
 
 % AVL geometry viewer (opens interactive Terminal window — requires manual close)
 viewGeometry    = false;   % true = open AVL 3D viewer before stability run
@@ -350,7 +350,7 @@ mission.n_turn            = 1.5;       % [-] working @ 1.2
 mission.delta_h           = delta_h;   % [m] altitude gain
 
 mission.V_climb_mps       = 15.0;      % [m/s] 1.2 x V_stall_actual (was 11 m/s — below stall)
-mission.gamma_climb_deg   = 6.0;       % [deg]
+mission.gamma_climb_deg   = 5.0;       % [deg]
 
 mission.V_descent_mps     = 30.0;      % [m/s]
 mission.gamma_descent_deg = 12.0;      % [deg]
@@ -387,26 +387,35 @@ propIn = struct();
 % Atmosphere
 propIn.rho = roh;                 % [kg/m^3]
 
-% Motor / battery
+% Motor / battery  (SunnySky 2212 1100KV datasheet)
 propIn.KV    = 1100;              % [RPM/V]
-propIn.Rm    = 0.073;             % [ohm]
-propIn.I0    = 0.9;               % [A]
-propIn.Vbat  = 11.1;              % [V]
-propIn.I_max = 35;                % [A]
+propIn.Rm    = 0.148;             % [ohm]  — effective circuit Rm (back-calc from bench: motor 54mΩ + ESC/wiring ~94mΩ)
+propIn.I0    = 0.8;               % [A]    — no-load at 10V
+propIn.Vbat  = 11.1;              % [V]    — 3S nominal
+propIn.I_max = 34;                % [A]    — motor max continuous (34A/30s); prof limit 40A
 
-% Propeller
-propIn.propName  = '10x4.5MR';
+% ── Propeller selection ───────────────────────────────────────────────────
+% Change propFileName/propName/D_in/pitch_in to analyse a different candidate.
+%
+%   Candidate       propFileName        D_in  pitch_in
+%   ──────────────────────────────────────────────────
+%   10x4.5MR (current, underperforms)    10    4.5
+%   10x7E    (same diam, higher pitch)   10    7.0
+%   11x7E    (primary candidate)         11    7.0   ← active
+%   12x6E    (max diam, watch current)   12    6.0
+%
+propFileName = 'PER3_10x6E.dat';
+propIn.apcFile   = fullfile(fileparts(mfilename('fullpath')), 'resources', ...
+    'propeller_surrogate_model', 'propeller_performance_data_files', propFileName);
+propIn.propName  = '10x6E';
 propIn.D_in      = 10;            % [in]
-propIn.pitch_in  = 4.5;           % [in]
+propIn.pitch_in  = 6.0;           % [in]
 
 % Speed grid
 propIn.V_vec_mps = linspace(0,40,250);   % expand search range
 
 % Mode switch
 propIn.usePrelimModel = false;
-
-% APC model source
-propIn.apcModelFile = 'all_prop_surrogates.mat';
 
 propOut = propulsionAnalysis(propIn);
 
