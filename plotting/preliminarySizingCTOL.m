@@ -289,74 +289,100 @@ sizing.use_ceiling = use_ceiling;
 sizing.LD_max      = LD_max;
 
 %% -------------------------
-% Plot
+% Plot — report quality
 % -------------------------
-fig = figure('Name','CTOL Preliminary Sizing Constraint Plot','Color','w');
-ax = axes(fig); hold(ax,'on'); box(ax,'on'); grid(ax,'on');
+clr_climb    = [0.122 0.471 0.706];   % blue
+clr_maneuver = [1.000 0.498 0.055];   % orange
+clr_takeoff  = [0.173 0.627 0.173];   % green
+clr_stall    = [0.839 0.153 0.157];   % red
+clr_avail    = [0.580 0.404 0.741];   % purple
+clr_feasible = [0.800 0.937 0.800];   % light green fill
+clr_infeas   = [0.980 0.898 0.898];   % light red fill
 
+TW_max_plot = max([TW_avail_climb, TW_avail_turn, max(TW_req)]) * 1.25;
+TW_max_plot = min(TW_max_plot, 1.2);
+
+fig = figure('Name','CTOL Constraint Diagram','NumberTitle','off','Color','w');
+fig.Position(3:4) = [640 480];
+ax = axes(fig);
+hold(ax,'on'); box(ax,'on');
+grid(ax,'on');
+ax.GridAlpha      = 0.15;
+ax.GridLineStyle  = '--';
+ax.FontSize       = 11;
+ax.FontName       = 'Helvetica';
+ax.TickDir        = 'out';
+ax.LineWidth      = 0.8;
+
+% ── Shade infeasible region (right of stall line) ─────────────────────────
+x_infeas = [WS_stall_max, WS_vec(end), WS_vec(end), WS_stall_max];
+y_infeas  = [0, 0, TW_max_plot, TW_max_plot];
+fill(ax, x_infeas, y_infeas, clr_infeas, 'EdgeColor','none','FaceAlpha',0.6,'HandleVisibility','off');
+text(ax, WS_stall_max*1.02, TW_max_plot*0.94, 'Stall-limited', ...
+     'FontSize',9,'Color',clr_stall,'FontAngle','italic','HandleVisibility','off');
+
+% ── Shade feasible region ─────────────────────────────────────────────────
+if ~isempty(WS_feas)
+    TW_floor = zeros(size(WS_feas));
+    x_feas   = [WS_feas, fliplr(WS_feas)];
+    y_feas   = [TW_req_feas, fliplr(TW_floor)];
+    fill(ax, x_feas, y_feas, clr_feasible, 'EdgeColor','none','FaceAlpha',0.5,'HandleVisibility','off');
+end
+
+% ── Constraint curves ─────────────────────────────────────────────────────
 h = gobjects(0);
 leg = {};
 
-h(end+1) = plot(ax, WS_vec, TW_climb, 'LineWidth', 2);
+h(end+1) = plot(ax, WS_vec, TW_climb, '-', 'Color',clr_climb, 'LineWidth',2);
 leg{end+1} = 'Climb';
 
-h(end+1) = plot(ax, WS_vec, TW_maneuver, 'LineWidth', 2);
-leg{end+1} = sprintf('Maneuver (n = %.2f)', n_maneuver);
+h(end+1) = plot(ax, WS_vec, TW_maneuver, '-', 'Color',clr_maneuver, 'LineWidth',2);
+leg{end+1} = sprintf('Maneuver  (n = %.1f g)', n_maneuver);
 
 if use_takeoff
-    h(end+1) = plot(ax, WS_vec, TW_takeoff, 'LineWidth', 2);
+    h(end+1) = plot(ax, WS_vec, TW_takeoff, '-', 'Color',clr_takeoff, 'LineWidth',2);
     leg{end+1} = 'Takeoff';
 end
 
-h(end+1) = xline(ax, WS_stall_max, '--', 'LineWidth', 2);
-leg{end+1} = 'Stall limit';
-
 if use_ceiling
-    h(end+1) = yline(ax, TW_ceiling, '-.', 'LineWidth', 2);
+    h(end+1) = yline(ax, TW_ceiling, '-.', 'Color',[0.5 0.5 0.5], 'LineWidth',1.5);
     leg{end+1} = 'Ceiling';
 end
 
-% Available T/W lines
-h(end+1) = yline(ax, TW_avail_climb, '--', 'LineWidth', 1.5);
-leg{end+1} = sprintf('Available T/W @ climb (%.2f m/s)', V_climb_mps);
+% Stall boundary
+h(end+1) = xline(ax, WS_stall_max, '--', 'Color',clr_stall, 'LineWidth',2);
+leg{end+1} = sprintf('Stall limit  (V_s = %.1f m/s)', V_stall_mps);
 
-h(end+1) = yline(ax, TW_avail_turn, ':', 'LineWidth', 1.5);
-leg{end+1} = sprintf('Available T/W @ turn (%.2f m/s)', V_turn_mps);
+% ── Available T/W lines ───────────────────────────────────────────────────
+h(end+1) = yline(ax, TW_avail_climb, '--', 'Color',clr_avail, 'LineWidth',1.5);
+leg{end+1} = sprintf('T/W avail. @ V_{climb} = %.0f m/s', V_climb_mps);
 
-h(end+1) = plot(ax, WS_best, TW_best, 'o', 'MarkerSize', 8, 'LineWidth', 2);
-leg{end+1} = 'Best point';
+h(end+1) = yline(ax, TW_avail_turn,  ':',  'Color',clr_avail, 'LineWidth',1.5);
+leg{end+1} = sprintf('T/W avail. @ V_{turn}  = %.0f m/s', V_turn_mps);
 
-h(end+1) = plot(ax, WS_design, TW_design, 's', 'MarkerSize', 8, 'LineWidth', 2);
-leg{end+1} = 'Buffered design point';
+% ── Design point ──────────────────────────────────────────────────────────
+h(end+1) = plot(ax, WS_design, TW_design, 'p', ...
+    'MarkerSize',14, 'MarkerFaceColor',[0.929 0.694 0.125], ...
+    'MarkerEdgeColor','k', 'LineWidth',1.2);
+leg{end+1} = sprintf('Design point  (W/S = %.1f N/m², T/W = %.3f)', WS_design, TW_design);
 
-xlabel(ax, 'Wing Loading W/S [N/m^2]');
-ylabel(ax, 'Thrust Loading T/W [-]');
-title(ax, 'CTOL Prop Aircraft Preliminary Sizing');
+% Label on design point
+text(ax, WS_design + (WS_vec(end)-WS_vec(1))*0.025, TW_design + TW_max_plot*0.03, ...
+    sprintf('W/S = %.1f\nT/W = %.3f', WS_design, TW_design), ...
+    'FontSize',9, 'FontName','Helvetica', 'Color','k');
 
-legend(ax, h, leg, 'Location', 'best');
+% ── Axes formatting ───────────────────────────────────────────────────────
+xlim(ax, [WS_vec(1), WS_vec(end)]);
+ylim(ax, [0, TW_max_plot]);
 
-txt = sprintf([ ...
-    'Design point:\n' ...
-    'W/S = %.1f N/m^2 | %.3f lbf/ft^2\n' ...
-    'T/W = %.4f\n' ...
-    'Treq = %.3f N\n' ...
-    'Gov. = %s\n' ...
-    'Tavail@climb = %.3f N (T/W = %.4f)\n' ...
-    'Tavail@turn  = %.3f N (T/W = %.4f)\n' ...
-    'Feasible@climb: %d\n' ...
-    'Feasible@turn : %d'], ...
-    WS_design, WS_design_imp, TW_design, T_design_N, governingConstraint, ...
-    T_avail_climb_N, TW_avail_climb, ...
-    T_avail_turn_N,  TW_avail_turn, ...
-    isFeasibleAtClimb, isFeasibleAtTurn);
+xlabel(ax, 'Wing Loading  W/S  [N/m²]', 'FontSize',12);
+ylabel(ax, 'Thrust Loading  T/W  [—]',  'FontSize',12);
+title(ax, 'Constraint Diagram — Wing Loading vs Thrust Loading', ...
+    'FontSize',13, 'FontWeight','bold');
 
-annotation(fig, 'textbox', [0.52 0.10 0.36 0.24], ...
-    'String', txt, ...
-    'FitBoxToText', 'on', ...
-    'BackgroundColor', 'w', ...
-    'EdgeColor', 'k', ...
-    'FontName', 'Consolas', ...
-    'FontSize', 10);
+leg_h = legend(ax, h, leg, 'Location','northwest', 'FontSize',9, ...
+    'Box','on', 'EdgeColor',[0.7 0.7 0.7]);
+leg_h.ItemTokenSize = [18 9];
 
 sizing.fig = fig;
 

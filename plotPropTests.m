@@ -265,6 +265,67 @@ for k = 1:N
 end
 fprintf('============================================================\n\n');
 
+%% ── Figure 6: Actuator Disk T(V) — independent of APC data ──────────────
+% Uses only measured T_static and propeller diameter.
+% Physics: constant mechanical power + momentum equation solved iteratively.
+%   T*(V + vi) = P_mech  (power balance, constant throttle approximation)
+%   T = 2*rho*A*vi*(V + vi)   (momentum theory)
+% Combining: 2*rho*A*vi*(V+vi)^2 = P_mech, solved via Newton iteration.
+
+rho_ad = motorBase.rho;
+
+for k = 1:N
+    D_m  = props{k,4} * 0.0254;
+    A_d  = pi * (D_m/2)^2;
+    T0   = bench(k).T_static;
+    vi0  = sqrt(T0 / (2 * rho_ad * A_d));
+    P0   = T0 * vi0;
+
+    T_disk = zeros(size(V_plot));
+    for vi = 1:numel(V_plot)
+        V_inf  = V_plot(vi);
+        vi_est = vi0;
+        for iter = 1:50
+            f      = 2*rho_ad*A_d*vi_est*(V_inf + vi_est)^2 - P0;
+            df     = 2*rho_ad*A_d*((V_inf + vi_est)^2 + 2*vi_est*(V_inf + vi_est));
+            vi_est = vi_est - f/df;
+            if abs(f/P0) < 1e-6, break; end
+        end
+        T_disk(vi) = 2 * rho_ad * A_d * vi_est * (V_inf + vi_est);
+    end
+    bench(k).T_disk = T_disk;
+end
+
+figure('Name','Thrust vs V — Actuator Disk vs Bench-Derived','NumberTitle','off','Color','w');
+hold on;
+for k = 1:N
+    plot(V_plot, bench(k).T_disk, '-.', 'Color', colors{k}, 'LineWidth', 2, ...
+         'DisplayName', sprintf('%s actuator disk', bench(k).label));
+    plot(bench(k).V_plot, bench(k).T_from_bench, '-', 'Color', colors{k}, ...
+         'LineWidth', 2, 'DisplayName', sprintf('%s bench-derived', bench(k).label));
+    plot(0, bench(k).T_static, 'o', 'Color', colors{k}, ...
+         'MarkerFaceColor', colors{k}, 'MarkerSize', 9, 'HandleVisibility','off');
+end
+yline(T_req,   'k--', 'LineWidth', 1.5, 'DisplayName', sprintf('T_{req} = %.1f N', T_req));
+xline(V_climb, 'k:',  'LineWidth', 1.5, 'DisplayName', sprintf('V_{climb} = %.0f m/s', V_climb));
+grid on; box on;
+xlabel('Flight Speed  V_{\infty}  [m/s]');
+ylabel('Thrust  T  [N]');
+title('Thrust vs Flight Speed — Actuator Disk (dash-dot) vs Bench-Derived (solid)');
+legend('Location','northeast');
+
+%% ── Print actuator disk T_climb comparison ───────────────────────────────
+fprintf('ACTUATOR DISK vs BENCH-DERIVED T at V=%.0f m/s\n', V_climb);
+fprintf('%-10s  %12s  %12s  %8s\n', 'Prop', 'T_disk(N)', 'T_bench(N)', 'Diff %');
+fprintf('%s\n', repmat('-',1,50));
+for k = 1:N
+    T_d  = interp1(V_plot, bench(k).T_disk,       V_climb, 'linear');
+    T_b  = interp1(bench(k).V_plot, bench(k).T_from_bench, V_climb, 'linear');
+    diff = (T_d - T_b) / T_b * 100;
+    fprintf('%-10s  %12.2f  %12.2f  %8.1f%%\n', bench(k).label, T_d, T_b, diff);
+end
+fprintf('%s\n', repmat('-',1,50));
+
 %% ── Print bench-derived T_climb ───────────────────────────────────────────
 fprintf('BENCH-DERIVED T at V=%.0f m/s (using measured RPM + APC CT ratio)\n', V_climb);
 fprintf('%-10s  %12s  %8s\n', 'Prop', 'T_climb(N)', 'Pass?');

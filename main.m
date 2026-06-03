@@ -76,7 +76,7 @@ diary(logFile);
 
 %% =================== Run Flags =========================
 % Figures
-showPlots       = false;  % true = show all figures throughout the script
+showPlots       = true;  % true = show all figures throughout the script
 
 % AVL geometry viewer (opens interactive Terminal window — requires manual close)
 viewGeometry    = false;   % true = open AVL 3D viewer before stability run
@@ -395,21 +395,15 @@ propIn.Vbat  = 11.1;              % [V]    — 3S nominal
 propIn.I_max = 34;                % [A]    — motor max continuous (34A/30s); prof limit 40A
 
 % ── Propeller selection ───────────────────────────────────────────────────
-% Change propFileName/propName/D_in/pitch_in to analyse a different candidate.
+% Flight propeller: 10x4.7 (bench-tested, primary flight candidate)
+% Closest APC dataset: PER3_10x47SF.dat (SF series, same pitch)
 %
-%   Candidate       propFileName        D_in  pitch_in
-%   ──────────────────────────────────────────────────
-%   10x4.5MR (current, underperforms)    10    4.5
-%   10x7E    (same diam, higher pitch)   10    7.0
-%   11x7E    (primary candidate)         11    7.0   ← active
-%   12x6E    (max diam, watch current)   12    6.0
-%
-propFileName = 'PER3_10x6E.dat';
+propFileName = 'PER3_10x47SF.dat';
 propIn.apcFile   = fullfile(fileparts(mfilename('fullpath')), 'resources', ...
     'propeller_surrogate_model', 'propeller_performance_data_files', propFileName);
-propIn.propName  = '10x6E';
+propIn.propName  = '10x4.7';
 propIn.D_in      = 10;            % [in]
-propIn.pitch_in  = 6.0;           % [in]
+propIn.pitch_in  = 4.7;           % [in]
 
 % Speed grid
 propIn.V_vec_mps = linspace(0,40,250);   % expand search range
