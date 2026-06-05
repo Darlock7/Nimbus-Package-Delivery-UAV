@@ -76,7 +76,7 @@ diary(logFile);
 
 %% =================== Run Flags =========================
 % Figures
-showPlots       = true;  % true = show all figures throughout the script
+showPlots       = false;  % true = show all figures throughout the script
 
 % AVL geometry viewer (opens interactive Terminal window — requires manual close)
 viewGeometry    = false;   % true = open AVL 3D viewer before stability run
@@ -1113,9 +1113,9 @@ comp(end+1) = makePointMass('M1 Main Motor', 0.0, [0.000,  0.000,  0.000]);
 comp(end+1) = makePointMass('P1 Main Prop',  0.0, [0.000,  0.000,  0.000]);
 comp(end+1) = makePointMass('ESC1 Main ESC', 0.0, [0.06,   0.000,  0.000]);
 
-% ---- Battery at 111 mm from nose ----
-% Solved for SM = 5% using unloaded masses: x = (1.746*0.3489 - 0.5924) / 0.150
-comp(end+1) = makePointMass('B1 Main Battery', 0.15, [0.111, 0.000, -0.01750000/2]);
+% ---- Battery at 88 mm from nose ----
+% Moved forward from 111 mm to achieve SM = 5.5% (loaded, AVL NP)
+comp(end+1) = makePointMass('B1 Main Battery', 0.15, [0.088, 0.000, -0.01750000/2]);
 
 % ---- Receiver — now in full assembly CAD; zero mass here ----
 comp(end+1) = makePointMass('R1 Receiver', 0.0, [0.1, 0.000, 0.000]);
@@ -1127,9 +1127,9 @@ comp(end+1) = makePointMass('R1 Receiver', 0.0, [0.1, 0.000, 0.000]);
 %   Weight Payload  800 g — stays in aircraft throughout all flights
 %   Struct Adj    remainder to reach 2.7495 kg target (misc hardware not in CAD)
 %
-%   Check: 1.221 + 0.150 + 3*0.025 + 0.300 + 0.800 + m_struct_adj = 2.7495
-%          m_struct_adj = 2.7495 - 1.221 - 0.150 - 0.075 - 0.300 - 0.800 = 0.2035 kg
-m_struct_adj_kg = 2.7495 - cadMass.fullAssembly.mass_kg - 0.150 - 3*0.025 - 0.300 - 0.800;
+%   Check: 1.221 + 0.150 + (0.025+2*0.040) + 0.300 + 0.800 + m_struct_adj = 2.600 (measured)
+%          m_struct_adj = 2.600 - 1.221 - 0.150 - 0.105 - 0.300 - 0.800 = 0.024 kg
+m_struct_adj_kg = 2.600 - cadMass.fullAssembly.mass_kg - 0.150 - (0.025 + 2*0.040) - 0.300 - 0.800;
 
 comp(end+1) = makePointMass('Volume Box',      0.300,            [0.3489, 0.000, -0.01750000/2]);
 comp(end+1) = makePointMass('Weight Payload',  0.800,            [0.3489, 0.000, -0.01750000/2]);
@@ -1837,7 +1837,7 @@ fprintf('=====================================================================\n
 % x_CG(x_b) = x_CG_ref + (m_batt/m_total)*(x_b - x_b_ref)
 
 m_batt_plot  = 0.150;              % [kg]
-x_batt_ref   = 0.111;             % [m] current battery x-position
+x_batt_ref   = 0.088;             % [m] current battery x-position
 x_batt_vec   = linspace(0, Lf, 300);   % [m] sweep full fuselage length
 
 x_CG_vec_s1 = massOut.cg_m(1)    + (m_batt_plot / massOut.mass_kg)    .* (x_batt_vec - x_batt_ref);
@@ -1890,8 +1890,8 @@ fprintf('\n================ SM CORRECTION ADVISOR =================\n');
 
 SM_target    = 7.5;   % [%] midpoint of 5-10% target band
 xNP_curr     = massOut.cg_m(1) + dynOut.SM_pct/100 * wingOut.MAC_m;
-m_batt_kg    = 0.161;
-x_batt_curr  = 0.553;
+m_batt_kg    = 0.150;
+x_batt_curr  = 0.088;
 m_no_batt_kg = massOut.mass_kg - m_batt_kg;
 x_cg_no_batt = (massOut.mass_kg*massOut.cg_m(1) - m_batt_kg*x_batt_curr) / m_no_batt_kg;
 x_cg_target  = xNP_curr - SM_target/100 * wingOut.MAC_m;
@@ -2185,10 +2185,10 @@ fprintf('Stress = %.2f MPa\n', sigma/1e6);
 fprintf('Factor of Safety = %.2f\n', FoS);
 
 % ================= SPAR LOCATION =================
-x_spar = 0.25 * c_root;
+x_spar = 0.40 * c_root;   % primary spar at 40% chord (max thickness region)
 
 fprintf('\n--- SPAR LOCATION ---\n');
-fprintf('Chordwise location = %.4f m (25%% chord)\n', x_spar);
+fprintf('Chordwise location = %.4f m (40%% chord)\n', x_spar);
 
 % ================= RIB DESIGN =================
 rib_spacing = 0.07;   % 7 cm (optimized)

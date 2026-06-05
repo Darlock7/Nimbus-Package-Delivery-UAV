@@ -87,9 +87,8 @@ function mcOut = monteCarloProfitSensitivity(mcIn)
         if V_mps(i) < sm_fac * Vs_payload(i);        continue; end
         if SM_pct(i) < SM_lo || SM_pct(i) > SM_hi;  continue; end
 
-        Tf_raw = R_cruise_m / V_mps(i);
-        Tf_sc  = 20 * Tf_raw;
-        Ef_sc  = 20 * reserve_factor * (Wg_N(i)/LD(i)) * R_cruise_m / eta_p;
+        Tf_sc  = R_cruise_m / V_mps(i);
+        Ef_sc  = reserve_factor * (Wg_N(i)/LD(i)) * R_cruise_m / eta_p;
 
         J(i) = profitPerUnitTime(Wp_N(i), Vp_m3(i), Ef_sc, Wg_N(i), Tf_sc);
         isFeasible(i) = true;
@@ -216,8 +215,8 @@ function [J, feasible] = profitModelSimple(x, R_cruise_m, eta_p, reserve_factor,
     if x.V_mps < stall_margin * Vs;                  return; end
     if x.SM_pct < SM_min_pct || x.SM_pct > SM_max_pct; return; end
 
-    Tf = 20 * R_cruise_m / x.V_mps;
-    Ef = 20 * reserve_factor * (Wg_N / x.LD) * R_cruise_m / eta_p;
+    Tf = R_cruise_m / x.V_mps;
+    Ef = reserve_factor * (Wg_N / x.LD) * R_cruise_m / eta_p;
 
     J = profitPerUnitTime(x.Wp_N, x.Vp_m3, Ef, Wg_N, Tf);
     feasible = true;
