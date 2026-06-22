@@ -65,8 +65,8 @@ The aircraft was manufactured by the team and completed flight testing at Missio
 | Tip airfoil | Eppler 230 | — |
 | Geometric washout | −4.04 (Panknin) | deg |
 | **Mass & Weights** | | |
-| MTOW (loaded) | 2.78 | kg |
-| Empty weight | 1.68 | kg |
+| MTOW (loaded) | 2.60 | kg |
+| Empty weight | 1.80 | kg |
 | Payload | 800 | g |
 | **Performance** | | |
 | Design cruise speed | 20.0 | m/s |
