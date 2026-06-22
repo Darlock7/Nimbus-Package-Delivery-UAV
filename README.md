@@ -31,6 +31,34 @@ The aircraft was manufactured by the team and completed flight testing at Missio
 
 ---
 
+## Profit Optimizer
+
+*Pipeline architecture and implementation by Juan Sanchez.*
+
+The core of the design process is a **Covariance Matrix Adaptation Evolution Strategy (CMA-ES)** optimizer implemented from scratch in MATLAB — no toolboxes, no `fmincon`. CMA-ES was chosen specifically because the objective landscape is non-convex, non-smooth, and includes discontinuous constraint boundaries: gradient methods fail here. The algorithm adapts its search covariance matrix generation-over-generation, efficiently navigating a 13-dimensional design space.
+
+**Design variables (13):** aspect ratio, taper ratio, quarter-chord sweep, root twist, wing loading, CG position (x_LE), vertical fin AR/taper/sweep, cruise speed, cargo volume, and fuselage half-width and length.
+
+Each candidate design is fully evaluated through a **physics-in-the-loop** chain — every single function evaluation runs the complete MATLAB pipeline:
+
+| Step | Module |
+|---|---|
+| 1 | Wing and fin geometry generation |
+| 2 | Component mass buildup + inertia tensor |
+| 3 | Airfoil surrogate (XFOIL) + aerodynamic polar |
+| 4 | CTOL constraint checks (stall, takeoff ground roll, climb T/W, turn T/W) |
+| 5 | AVL dynamic stability — eigenvalue analysis for all six modes |
+
+Constraints are split into two tiers. Hard geometric/performance constraints (stall speed, takeoff distance, wingspan limit) cause immediate candidate rejection. Handling-quality violations (static margin band, short-period damping, phugoid stability, Dutch roll, trim authority) are applied as soft quadratic penalties per MIL-STD-1797 Level 1/2 thresholds — the optimizer penalizes rather than rejects, so it can trade stability margin against profit.
+
+<div align="center">
+<img src="assets/images/optimizer_block_diagram.png" width="520"/>
+</div>
+
+The optimizer ran for approximately **13,000 function evaluations** using `parfor` parallelization across candidates. The converged design point — AR = 8.0, W/S = 87.4 N/m², T/W = 0.28 — was used as the starting point for detailed design, yielding a final profit score of **$3.00/hr** under competition scoring rules.
+
+---
+
 ## Aircraft Specifications
 
 ### Geometry
