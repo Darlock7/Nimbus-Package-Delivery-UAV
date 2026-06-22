@@ -343,9 +343,14 @@ fclose(fid);
         CDq = 0.0;
     end
 
-    % use AVL totals if they look reasonable, else use input values
-    if ~isnan(CL_avl) && abs(CL_avl) > 1e-4,  CL0 = CL_avl; end
-    if ~isnan(CD_avl) && abs(CD_avl) > 1e-5,  CD0 = dynIn.CD0 + CD_avl; end  % profile + induced
+    % CL0: use dynIn.CL_trim (MATLAB surrogate, correct airfoils).
+    % AVL CL is NOT used here — AVL airfoil .dat paths are Windows-absolute
+    % and silently fail on Mac, leaving AVL on a flat-plate model that
+    % underestimates CL by ~2x. That halves Zu and flips phugoid sign.
+    %
+    % CD0: AVL gives only induced drag (no viscous). Add profile drag from
+    % dynIn.CD0 (Raymer build-up incl. motor + gear) to get total trim CD.
+    if ~isnan(CD_avl) && abs(CD_avl) > 1e-5,  CD0 = dynIn.CD0 + CD_avl; end
 
     derivs.CLa=CLa; derivs.CDa=CDa; derivs.Cma=Cma;
     derivs.CLq=CLq; derivs.CDq=CDq; derivs.Cmq=Cmq;
