@@ -57,6 +57,12 @@ Constraints are split into two tiers. Hard geometric/performance constraints (st
 
 The optimizer ran for approximately **13,000 function evaluations** using `parfor` parallelization across candidates. The converged design point — AR = 8.0, W/S = 87.4 N/m², T/W = 0.28 — was used as the starting point for detailed design, yielding a final profit score of **$3.00/hr** under competition scoring rules.
 
+Battery position is a key optimizer degree of freedom: shifting the pack forward lowers the static margin, reducing tail-trim drag and improving L/D, but tightens the SM constraint floor. The plot below shows this trade directly.
+
+<div align="center">
+<img src="assets/plots/SM_vs_Battery_Position.png" width="600"/>
+</div>
+
 ---
 
 ## Aircraft Specifications
@@ -145,6 +151,22 @@ The optimizer ran for approximately **13,000 function evaluations** using `parfo
 
 ---
 
+## Flight Day
+
+<div align="center">
+
+<img src="assets/images/IMG_7501.JPG" width="780"/>
+
+<br>
+
+<img src="assets/images/DSC_0167.JPG" width="32%"/> <img src="assets/images/DSC_0188.JPG" width="32%"/> <img src="assets/images/team2c.JPG" width="32%"/>
+
+<img src="assets/images/IMG_7110.JPG" width="49%"/> <img src="assets/images/DSC_0225.JPG" width="49%"/>
+
+</div>
+
+---
+
 ## Package Deployment System
 
 *Design and analysis by John Sigafoos.*
@@ -187,22 +209,6 @@ A custom **2D Hess-Smith source panel method** (200 panels) was implemented to m
 
 ---
 
-## Flight Day
-
-<div align="center">
-
-<img src="assets/images/IMG_7501.JPG" width="780"/>
-
-<br>
-
-<img src="assets/images/DSC_0167.JPG" width="32%"/> <img src="assets/images/DSC_0188.JPG" width="32%"/> <img src="assets/images/team2c.JPG" width="32%"/>
-
-<img src="assets/images/IMG_7110.JPG" width="49%"/> <img src="assets/images/DSC_0225.JPG" width="49%"/>
-
-</div>
-
----
-
 ## Team
 
 <div align="center">
@@ -219,7 +225,7 @@ A custom **2D Hess-Smith source panel method** (200 panels) was implemented to m
 
 ## Analysis Plots
 
-*Run `export_plots.m` to auto-generate all figures below into `assets/plots/`.*
+*Run `export_plots.m` to auto-generate all figures into `assets/plots/`.*
 
 ### 3D Aircraft Geometry
 
@@ -315,7 +321,28 @@ Optimal payload: 1200 g (J = $12.53/hr, SM = 13.9%). Design carries 800 g (J = $
 
 ---
 
-## Analysis Pipeline
+<details>
+<summary>Additional supporting plots</summary>
+
+<br>
+
+<div align="center">
+<img src="assets/plots/Airfoil_Drag_Curve_Root_Tip.png" width="49%"/> <img src="assets/plots/Airfoil_LD_Ratio_Root_Tip.png" width="49%"/>
+<img src="assets/plots/Airfoil_Pitching_Moment_Curve_Root_Tip.png" width="49%"/> <img src="assets/plots/Lift-to-Drag_vs_Alpha.png" width="49%"/>
+<img src="assets/plots/Current_Draw_10x47.png" width="49%"/>
+<br><br>
+<img src="assets/plots/Spanwise_Chord_Distribution.png" width="49%"/> <img src="assets/plots/Spanwise_Effective_Angle_of_Attack.png" width="49%"/>
+<img src="assets/plots/Spanwise_Lift_per_Unit_Span.png" width="49%"/> <img src="assets/plots/Spanwise_Zero-Lift_Pitching_Moment.png" width="49%"/>
+</div>
+
+</details>
+
+---
+
+<details>
+<summary>Analysis pipeline</summary>
+
+<br>
 
 `main.m` runs every module in sequence:
 
@@ -342,9 +369,14 @@ Optimal payload: 1200 g (J = $12.53/hr, SM = 13.9%). Design carries 800 g (J = $
 | Monte Carlo | Profit sensitivity to design variable uncertainty |
 | Profit optimizer | Full CMA-ES aircraft optimizer |
 
+</details>
+
 ---
 
-## Code Structure
+<details>
+<summary>Code structure</summary>
+
+<br>
 
 ```
 MAE155B-Aircraft-Design/
@@ -374,6 +406,8 @@ MAE155B-Aircraft-Design/
 │   └── plots/                ← MATLAB-generated figures (via export_plots.m)
 └── outputs/                  ← Generated results (gitignored)
 ```
+
+</details>
 
 ---
 
