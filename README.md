@@ -17,7 +17,25 @@ RC fixed-wing aircraft designed and optimized from scratch for a package deliver
 
 <br>
 
-<img src="assets/images/team2.JPG" width="49%"/> <img src="assets/images/DSC_0284.JPG" width="49%"/>
+<img src="assets/images/Final_CAD_2.png" width="49%"/> <img src="assets/images/Final_CAD_3.png" width="49%"/>
+
+<br>
+
+<img src="assets/images/IMG_7501.JPG" width="780"/>
+
+<br>
+
+<img src="assets/images/DSC_0167.JPG" width="32%"/> <img src="assets/images/DSC_0188.JPG" width="32%"/> <img src="assets/images/team2c.JPG" width="32%"/>
+
+<img src="assets/images/IMG_7110.JPG" width="49%"/> <img src="assets/images/DSC_0225.JPG" width="49%"/>
+
+<br>
+
+<img src="assets/images/DSC_0219.JPG" width="680"/>
+
+**Harshil Patel · John Sigafoos · Angel Ochoa · Juan Sanchez · Sara Chowdhury · Analisa Veloz**
+
+*Group 2 — MAE 155B Aircraft Design, UC San Diego, Spring 2026*
 
 </div>
 
@@ -28,6 +46,58 @@ RC fixed-wing aircraft designed and optimized from scratch for a package deliver
 Nimbus is a swept flying-wing RC aircraft built around an end-to-end MATLAB analysis pipeline. The design is driven by a CMA-ES global optimizer that maximizes a competition profit score — trading off payload volume, cruise efficiency, structural weight, and aerodynamic performance. All subsystems (aerodynamics, propulsion, stability, structure, economics) are modeled from scratch and tightly coupled.
 
 The aircraft was manufactured by the team and completed flight testing at Mission Bay Park, San Diego, in Spring 2026.
+
+---
+
+## Aircraft Specifications
+
+| Parameter | Value | Unit |
+|---|---|---|
+| **Geometry** | | |
+| Wingspan (full) | 1.5715 | m |
+| Wing area | 0.3087 | m² |
+| Aspect ratio | 8.0 | — |
+| Taper ratio | 0.661 | — |
+| Quarter-chord sweep | 28.3 | deg |
+| Root / Tip chord | 0.2365 / 0.1563 | m |
+| MAC | 0.1992 | m |
+| Root airfoil | Eppler 222 | — |
+| Tip airfoil | Eppler 230 | — |
+| Geometric washout | −4.04 (Panknin) | deg |
+| **Mass & Weights** | | |
+| MTOW (loaded) | 2.78 | kg |
+| Empty weight | 1.68 | kg |
+| Payload | 800 | g |
+| **Performance** | | |
+| Design cruise speed | 20.0 | m/s |
+| Stall speed (loaded) | 13.3 | m/s |
+| Takeoff speed | 14.9 | m/s |
+| Wing loading W/S | 87.4 | N/m² |
+| Static thrust (bench-corrected) | 10.2 | N |
+| Static thrust-to-weight | 0.36 | — |
+| Cruise L/D | 14.34 | — |
+| Min turn radius | 33.0 | m |
+| Max bank angle | 51.0 | deg |
+| **Propulsion** | | |
+| Motor | SunnySky X2216 V3, 1100 KV | — |
+| Propeller | APC 10×4.7SF | — |
+| Battery | 3S LiPo, 11.1 V | — |
+| Mission energy | 16.5 | Wh |
+| Energy with reserve | 19.0 | Wh |
+| **Stability** | | |
+| Static margin (AVL) | 4.88 | % MAC |
+| CG location (loaded) | 23.14 | % MAC |
+| Trim elevon | 5.01 | deg |
+| Short-period ωₙ / ζ | 6.68 / 0.62 | rad/s / — |
+| Dutch roll ωₙ / ζ | 4.24 / 0.08 | rad/s / — |
+| **Structure** | | |
+| Spar material | Carbon fiber tube | — |
+| Selected spar diameter | 10 | mm |
+| Root bending moment (3.8g) | 5.05 | N·m |
+| Bending factor of safety | 3.89 | — |
+| **Economics** | | |
+| Payload volume | 5 | L |
+| Profit rate (800 g payload) | **2.70** | $/hr |
 
 ---
 
@@ -55,114 +125,12 @@ Constraints are split into two tiers. Hard geometric/performance constraints (st
 <img src="assets/images/optimizer_block_diagram.png" width="520"/>
 </div>
 
-The optimizer ran for approximately **13,000 function evaluations** using `parfor` parallelization across candidates. The converged design point — AR = 8.0, W/S = 87.4 N/m², T/W = 0.28 — was used as the starting point for detailed design, yielding a final profit score of **$3.00/hr** under competition scoring rules.
+The optimizer ran for approximately **13,000 function evaluations** using `parfor` parallelization across candidates. The converged design point — AR = 8.0, W/S = 87.4 N/m², T/W = 0.28 — was used as the starting point for detailed design, yielding a final profit score of **$2.70/hr** under competition scoring rules.
 
 Battery position is a key optimizer degree of freedom: shifting the pack forward lowers the static margin, reducing tail-trim drag and improving L/D, but tightens the SM constraint floor. The plot below shows this trade directly.
 
 <div align="center">
 <img src="assets/plots/SM_vs_Battery_Position.png" width="600"/>
-</div>
-
----
-
-## Aircraft Specifications
-
-### Geometry
-
-| Parameter | Value |
-|---|---|
-| Configuration | Swept flying wing + twin vertical fins |
-| Full span | **1.5715 m** (61.9 in) |
-| Wing reference area | **0.3087 m²** |
-| Aspect ratio | **8.0** |
-| Taper ratio | 0.661 |
-| Quarter-chord sweep | **28.3°** |
-| Root chord | 0.2365 m (9.3 in) |
-| Tip chord | 0.1563 m (6.2 in) |
-| Mean aerodynamic chord | 0.1992 m (7.8 in) |
-| Fuselage length | 0.95 m |
-| Root airfoil | Eppler 222 |
-| Tip airfoil | Eppler 230 |
-| Vertical fin airfoil | NACA 0010 (twin, 65° sweep) |
-| Elevon chord fraction | 45% local chord, outboard |
-| Geometric washout | −4.04° tip (Panknin method) |
-
-### Weights & Loading
-
-| Parameter | Value |
-|---|---|
-| Gross weight (loaded) | **2.90 kg** |
-| Empty weight | ~2.10 kg |
-| Payload | **800 g** |
-| Wing loading | 71.5 N/m² |
-
-### Performance
-
-| Parameter | Value |
-|---|---|
-| Design cruise speed | **20 m/s** (44.7 mph) |
-| Stall speed (loaded) | 12.0 m/s (26.8 mph) |
-| Cruise L/D | **14.34** |
-| Cruise alpha | 2.46° |
-| Static thrust | 17.77 N |
-| Propeller | APC 10×4.7SF |
-| Motor KV | 1100 RPM/V |
-| Battery | 3S LiPo, 11.1 V |
-| Max current draw | 33.1 A (limit 35 A) |
-| Competition profit score | **$10.73 / hr** |
-
-### Stability
-
-| Mode | Result | Rating |
-|---|---|---|
-| Static margin (loaded) | **11.4% MAC** | In band (10–20%) |
-| Short period | ζ = 0.615, ωₙ = 6.98 rad/s | Level 1 |
-| Phugoid | ζ = +0.013, ωₙ = 0.570 rad/s | Stable (lightly damped) |
-| Dutch roll | ζ = 0.082, ωₙ = 4.24 rad/s | Level 2 |
-| Roll subsidence | τ = 0.080 s | Level 1 |
-| Spiral | t₂ = 24.6 s | Level 1 |
-| Trim elevon deflection | 4.96° trailing-edge down | Within ±20° limit |
-
-### Structure
-
-| Parameter | Value |
-|---|---|
-| Spar material | Carbon fiber tube |
-| Selected spar diameter | 10 mm |
-| Required minimum diameter | 8.0 mm |
-| Root bending moment (3.8g) | 5.05 N·m |
-| Bending factor of safety | **3.89** |
-| Max tip deflection | 60.5 mm (3.9% semispan) |
-| Elevon servo load (one side) | 63% of SG90 capacity |
-
----
-
-## CAD Model
-
-<div align="center">
-
-<img src="assets/images/DoorRails2.png" width="780"/>
-
-<br>
-
-<img src="assets/images/Final_CAD_2.png" width="49%"/> <img src="assets/images/Final_CAD_3.png" width="49%"/>
-
-</div>
-
----
-
-## Flight Day
-
-<div align="center">
-
-<img src="assets/images/IMG_7501.JPG" width="780"/>
-
-<br>
-
-<img src="assets/images/DSC_0167.JPG" width="32%"/> <img src="assets/images/DSC_0188.JPG" width="32%"/> <img src="assets/images/team2c.JPG" width="32%"/>
-
-<img src="assets/images/IMG_7110.JPG" width="49%"/> <img src="assets/images/DSC_0225.JPG" width="49%"/>
-
 </div>
 
 ---
@@ -175,19 +143,18 @@ The PDS is a clamshell cargo door on the underside of the MH95 fuselage, designe
 
 A custom **2D Hess-Smith source panel method** (200 panels) was implemented to model the fuselage Cp distribution at cruise and evaluate whether aerodynamic back-pressure at the door opening would impede package release. The analysis found that back-pressure force (22.98 N) exceeds package weight (2.94 N) at all door angles — confirming that a **spring-assisted ejection mechanism** is required.
 
-| Parameter | Value |
-|---|---|
-| Cargo bay dimensions | 0.625 m × 0.149 m × 0.114 m (L × W × H) |
-| Cargo bay volume | ~10.6 L |
-| Package mass (drop item) | 300 g cardboard box |
-| Door type | Clamshell, hinged at x/c = 0.80 |
-| Door fore-aft extent | 0.625 m |
-| Analysis method | Hess-Smith 2D source panel (200 panels) on MH95 section |
-| Dynamic pressure at cruise | 246.8 Pa (V = 20 m/s) |
-| Aero back-pressure force | **22.98 N** |
-| Package weight | **2.94 N** |
-| Deployment mode | Spring-assisted ejection (aero force > gravity at all angles) |
-| Min geometric door angle | 5.2° (gap ≥ package height) |
+| Parameter | Value | Unit |
+|---|---|---|
+| Cargo bay dimensions | 0.625 × 0.149 × 0.114 | m (L × W × H) |
+| Cargo bay volume | ~10.6 | L |
+| Package mass (drop item) | 300 | g |
+| Door type | Clamshell, hinged at x/c = 0.80 | — |
+| Analysis method | Hess-Smith 2D source panel (200 panels) | — |
+| Dynamic pressure at cruise | 246.8 | Pa |
+| Aero back-pressure force | **22.98** | N |
+| Package weight | **2.94** | N |
+| Deployment mode | Spring-assisted ejection | — |
+| Min geometric door angle | 5.2 | deg |
 
 <div align="center">
 
@@ -199,6 +166,10 @@ A custom **2D Hess-Smith source panel method** (200 panels) was implemented to m
 
 <br>
 
+<img src="assets/images/DoorRails2.png" width="780"/>
+
+<br>
+
 <img src="assets/images/DoorRails.png" width="600"/>
 
 *Dual rail guides and clamshell actuation detail*
@@ -206,20 +177,6 @@ A custom **2D Hess-Smith source panel method** (200 panels) was implemented to m
 </div>
 
 **[Technical Drawing — Nimbus V3 (PDF)](assets/images/Nimbus%20V3%20Drawings.pdf)**
-
----
-
-## Team
-
-<div align="center">
-
-<img src="assets/images/DSC_0219.JPG" width="680"/>
-
-**Harshil Patel · John Sigafoos · Angel Ochoa · Juan Sanchez · Sara Chowdhury · Analisa Veloz**
-
-*Group 2 — MAE 155B Aircraft Design, UC San Diego, Spring 2026*
-
-</div>
 
 ---
 
@@ -317,7 +274,7 @@ Evaluated via XFOIL surrogate at Re_root = 3.15×10⁵, Re_tip = 2.08×10⁵.
 <img src="assets/plots/Profit_vs_Payload_Weight.png" width="600"/>
 </div>
 
-Optimal payload: 1200 g (J = $12.53/hr, SM = 13.9%). Design carries 800 g (J = $10.73/hr) to keep stall speed ≤12 m/s within the runway constraint.
+Optimal payload: 1200 g (J = $12.53/hr, SM = 13.9%). Design carries 800 g (J = $2.70/hr) to keep stall speed within the runway constraint.
 
 ---
 
