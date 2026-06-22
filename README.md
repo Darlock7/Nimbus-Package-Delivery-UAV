@@ -81,13 +81,13 @@ The aircraft was manufactured by the team and completed flight testing at Missio
 
 | Mode | Result | Rating |
 |---|---|---|
-| Static margin (loaded) | **11.4% MAC** | ✅ In band (10–20%) |
-| Short period | ζ = 0.615, ωₙ = 6.98 rad/s | ✅ Level 1 |
-| Phugoid | ζ = +0.013, ωₙ = 0.570 rad/s | ✅ Stable (lightly damped) |
+| Static margin (loaded) | **11.4% MAC** | In band (10–20%) |
+| Short period | ζ = 0.615, ωₙ = 6.98 rad/s | Level 1 |
+| Phugoid | ζ = +0.013, ωₙ = 0.570 rad/s | Stable (lightly damped) |
 | Dutch roll | ζ = 0.082, ωₙ = 4.24 rad/s | Level 2 |
-| Roll subsidence | τ = 0.080 s | ✅ Level 1 |
-| Spiral | t₂ = 24.6 s | ✅ Level 1 |
-| Trim elevon deflection | 4.96° trailing-edge down | ✅ Well within ±20° |
+| Roll subsidence | τ = 0.080 s | Level 1 |
+| Spiral | t₂ = 24.6 s | Level 1 |
+| Trim elevon deflection | 4.96° trailing-edge down | Within ±20° limit |
 
 ### Structure
 
@@ -155,7 +155,7 @@ A custom **2D Hess-Smith source panel method** (200 panels) was implemented to m
 
 </div>
 
-📐 **[Technical Drawing — Nimbus V3 (PDF)](assets/images/Nimbus%20V3%20Drawings.pdf)**
+**[Technical Drawing — Nimbus V3 (PDF)](assets/images/Nimbus%20V3%20Drawings.pdf)**
 
 ---
 
