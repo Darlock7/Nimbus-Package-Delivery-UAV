@@ -117,7 +117,27 @@ The aircraft was manufactured by the team and completed flight testing at Missio
 
 ---
 
-## Internal Design
+## Package Deployment System
+
+*Design and analysis by John Sigafoos.*
+
+The PDS is a clamshell cargo door on the underside of the MH95 fuselage, designed to release a 300 g payload during cruise. The door hinge sits at 80% of the fuselage chord (x = 0.761 m from nose), with dual linear rail guides ensuring controlled opening geometry.
+
+A custom **2D Hess-Smith source panel method** (200 panels) was implemented to model the fuselage Cp distribution at cruise and evaluate whether aerodynamic back-pressure at the door opening would impede package release. The analysis found that back-pressure force (22.98 N) exceeds package weight (2.94 N) at all door angles — confirming that a **spring-assisted ejection mechanism** is required.
+
+| Parameter | Value |
+|---|---|
+| Cargo bay dimensions | 0.625 m × 0.149 m × 0.114 m (L × W × H) |
+| Cargo bay volume | ~10.6 L |
+| Package mass (drop item) | 300 g cardboard box |
+| Door type | Clamshell, hinged at x/c = 0.80 |
+| Door fore-aft extent | 0.625 m |
+| Analysis method | Hess-Smith 2D source panel (200 panels) on MH95 section |
+| Dynamic pressure at cruise | 246.8 Pa (V = 20 m/s) |
+| Aero back-pressure force | **22.98 N** |
+| Package weight | **2.94 N** |
+| Deployment mode | Spring-assisted ejection (aero force > gravity at all angles) |
+| Min geometric door angle | 5.2° (gap ≥ package height) |
 
 <div align="center">
 
@@ -131,7 +151,7 @@ The aircraft was manufactured by the team and completed flight testing at Missio
 
 <img src="assets/images/DoorRails.png" width="600"/>
 
-*Cargo door rail and actuation mechanism*
+*Dual rail guides and clamshell actuation detail*
 
 </div>
 
