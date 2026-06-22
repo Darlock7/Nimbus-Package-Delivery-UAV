@@ -13,7 +13,7 @@ RC fixed-wing aircraft designed and optimized from scratch for a package deliver
 
 <br>
 
-<img src="assets/images/IMG_7501.JPG" width="780"/>
+<img src="assets/images/Final_CAD.png" width="780"/>
 
 <br>
 
@@ -103,9 +103,49 @@ The aircraft was manufactured by the team and completed flight testing at Missio
 
 ---
 
+## CAD Model
+
+<div align="center">
+
+<img src="assets/images/DoorRails2.png" width="780"/>
+
+<br>
+
+<img src="assets/images/Final_CAD_2.png" width="49%"/> <img src="assets/images/Final_CAD_3.png" width="49%"/>
+
+</div>
+
+---
+
+## Internal Design
+
+<div align="center">
+
+<img src="assets/images/Cross_section_PDS2.png" width="780"/>
+
+<br>
+
+<img src="assets/images/Cross_section_PDS_3.png" width="49%"/> <img src="assets/images/Cross_section_PDS.png" width="49%"/>
+
+<br>
+
+<img src="assets/images/DoorRails.png" width="600"/>
+
+*Cargo door rail and actuation mechanism*
+
+</div>
+
+📐 **[Technical Drawing — Nimbus V3 (PDF)](assets/images/Nimbus%20V3%20Drawings.pdf)**
+
+---
+
 ## Flight Day
 
 <div align="center">
+
+<img src="assets/images/IMG_7501.JPG" width="780"/>
+
+<br>
 
 <img src="assets/images/DSC_0167.JPG" width="32%"/> <img src="assets/images/DSC_0188.JPG" width="32%"/> <img src="assets/images/team2c.JPG" width="32%"/>
 
