@@ -176,7 +176,7 @@ A custom **2D Hess-Smith source panel method** (200 panels) was implemented to m
 
 </div>
 
-**[Technical Drawing — Nimbus V3 (PDF)](assets/images/Nimbus%20V3%20Drawings.pdf)**
+**[Technical Drawing — Nimbus V4 (PDF)](assets/images/Nimbus%20V4%20Drawings.pdf)**
 
 ---
 
