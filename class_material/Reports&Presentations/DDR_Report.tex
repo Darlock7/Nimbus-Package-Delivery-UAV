@@ -1,0 +1,379 @@
+\documentclass[10pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+
+% Tighten spacing
+\titlespacing*{\section}{0pt}{6pt}{3pt}
+\titlespacing*{\subsection}{0pt}{4pt}{2pt}
+\setlength{\parskip}{3pt}
+\setlength{\parindent}{0pt}
+\captionsetup{font=small, skip=3pt}
+
+\begin{document}
+
+%% ----------------------------------------------------------------
+%% TITLE PAGE
+%% ----------------------------------------------------------------
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+{\LARGE \textbf{MAE 155B --- Aircraft Design}} \\[0.4cm]
+{\Large \textbf{Detail Design Review Report}} \\[0.8cm]
+\rule{\linewidth}{0.5pt} \\[0.4cm]
+{\large \textbf{Group 2 --- Package Delivery UAV}} \\[0.4cm]
+\rule{\linewidth}{0.5pt} \\[0.8cm]
+
+\begin{tabular}{ll}
+\textbf{Team Members:} & Harshil Patel \\
+                       & John Sigafoos \\
+                       & Angel Ochoa \\
+                       & Juan Sanchez \\
+                       & Sara Chowdhury \\
+                       & Analisa Veloz \\[0.5cm]
+\textbf{Course:}       & MAE 155B --- Aircraft Design \\
+\textbf{Date:}         & May 12, 2026 \\
+\textbf{Report Type:}  & Detail Design Review (DDR) \\
+\end{tabular}
+
+\vspace{1.5cm}
+\textbf{Abstract} \\[0.2cm]
+\begin{minipage}{0.85\linewidth}
+\normalsize
+This report presents the Detail Design of a small fixed-wing RC aircraft for autonomous
+package delivery, optimized to maximize profit per unit time. The final design is a
+tailless flying wing with twin delta winglets, an 8.0 AR tapered planform, and an
+APC 10$\times$4.5 MR propeller driven by a 1100\,KV brushless motor. The
+design achieves a projected profit rate of \$11.04/hr at an 800\,g payload,
+a static margin of 11.05\%\,MAC, and a total mission energy consumption of
+16.5\,Wh within the 18.98\,Wh available (28\% reserve).
+\end{minipage}
+\end{titlepage}
+
+%% ----------------------------------------------------------------
+%% EXECUTIVE SUMMARY
+%% ----------------------------------------------------------------
+\section*{Executive Summary}
+
+The Group 2 aircraft is a flying-wing UAV designed for short-range package delivery
+on a closed course. Design optimization maximizes profit per unit time $J$ by
+balancing payload capacity, lift-to-drag ratio, and energy consumption against
+structural and stability constraints.
+
+\subsection*{Top-Level Specifications}
+
+\begin{table}[H]
+\centering
+\caption{Top-Level Design Specifications (DDR)}
+\label{tab:specs}
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Parameter} & \textbf{Value} & \textbf{Unit} \\
+\midrule
+\multicolumn{3}{l}{\textit{Geometry}} \\
+Wingspan (full) & 1.5715 & m \\
+Wing area & 0.3087 & m$^2$ \\
+Aspect ratio & 8.0 & --- \\
+Taper ratio & 0.661 & --- \\
+Quarter-chord sweep & 28.3 & deg \\
+Root / Tip chord & 0.2365 / 0.1563 & m \\
+MAC & 0.1992 & m \\
+\midrule
+\multicolumn{3}{l}{\textit{Mass \& Weights}} \\
+MTOW (loaded) & 2.750 & kg (27.0\,N) \\
+Empty weight (no payload) & 1.950 & kg \\
+Payload & 800 & g \\
+\midrule
+\multicolumn{3}{l}{\textit{Performance}} \\
+Design cruise speed & 20.0 & m/s \\
+Stall speed (loaded) & 12.7 & m/s \\
+Takeoff speed & 14.2 & m/s \\
+Wing loading ($W/S$) & 87.4 & N/m$^2$ \\
+Static thrust & 15.6 & N \\
+Static thrust-to-weight & 0.58 & --- \\
+Min turn radius & 32 & m \\
+Max bank angle & 52 & deg \\
+\midrule
+\multicolumn{3}{l}{\textit{Propulsion}} \\
+Motor & 1100\,KV brushless & --- \\
+Propeller & APC 10$\times$4.5 MR & --- \\
+Battery & 3S LiPo 11.1\,V & --- \\
+Mission energy & 16.5 & Wh \\
+Energy with reserve & 19.0 & Wh \\
+\midrule
+\multicolumn{3}{l}{\textit{Stability}} \\
+Static margin (AVL) & 11.05 & \% MAC \\
+CG location (loaded) & 16.7 & \% MAC \\
+Trim elevon & 3.68 & deg \\
+Short-period $\omega_n$ / $\zeta$ & 9.0 / 0.46 & rad/s / --- \\
+Dutch roll $\omega_n$ / $\zeta$ & 5.3 / 0.09 & rad/s / --- \\
+\midrule
+\multicolumn{3}{l}{\textit{Economics}} \\
+Profit rate (800\,g payload) & \textbf{11.04} & \$/hr \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textit{[Technical 3-view drawing to be inserted here from SolidWorks/CAD export.
+Key dimensions: span = 1.572\,m, fuselage length = 0.950\,m,
+fin height = 0.172\,m at $y = 0.860$\,m from CL.]}
+
+%% ----------------------------------------------------------------
+%% BODY
+%% ----------------------------------------------------------------
+\section{Conceptual Design Phase}
+
+\subsection{Mission Requirements and Scoring Function}
+
+The design objective is to maximize profit per unit time $J$ (\$/hr), defined as:
+
+\begin{equation}
+J = \frac{P_r \cdot V_p \cdot V_{ps}}{T_f \cdot V_{p,\text{ref}}}
+\end{equation}
+
+where $P_r$ is the per-delivery revenue, $V_p = 0.015$\,m$^3$ is the payload volume,
+$V_{ps} = 15$ is the volume scaling ratio, and $T_f$ is total mission time.
+The mission profile consists of runway takeoff ($\sim$140\,m), a climb to altitude,
+cruise laps on a 509\,m circuit, and a landing recovery.
+
+\subsection{Configuration Selection}
+
+A tailless flying wing was selected to minimize wetted area and parasite drag,
+maximizing $L/D$ for a given wing loading. The configuration eliminates
+horizontal tail download, improving payload fraction relative to conventional
+tractor designs at small scale. A twin-boom or conventional aft-tail was
+rejected because the added wetted area reduces cruise $L/D$ below the
+$\approx$14 required for the target profit rate.
+
+Vertical stability is provided by twin delta winglets mounted at the wing tips,
+which contribute directional stability ($C_{n\beta} > 0$) and house split rudder
+surfaces for active yaw control.
+
+\section{Preliminary Design Phase}
+
+\subsection{Sizing and Constraint Analysis}
+
+Wing loading was sized from the stall constraint with $C_{L,\text{max}} = 0.915$
+and a target stall speed of 12.0\,m/s, yielding $W/S \leq 79.6$\,N/m$^2$.
+Thrust loading was sized from the takeoff constraint (governing), giving
+$T/W \geq 0.47$.
+
+A parametric sweep of span $b$, taper $\lambda$, and payload mass $m_p$ was
+performed through the full MATLAB analysis pipeline with AVL in the loop.
+The profit-optimal solution at the static-margin constraint $\text{SM} \geq 5\%$
+is a 1200\,g payload at $J = 12.83$\,\$/hr; however, the team selected
+$m_p = 800$\,g ($J = 11.04$\,\$/hr) to provide SM = 9.2\% with less structural
+loading risk during the prototype test campaign.
+
+\subsection{Airfoil Selection}
+
+The MH95 airfoil was selected for the centerbody cross-section due to its
+favorable reflexed camber line, which naturally provides the positive pitching
+moment coefficient ($C_{m0} > 0$) required for pitch trim in a tailless
+configuration without large positive elevon deflections.
+Wing panels use E222 at the root and E230 at the tip,
+both generating low $C_{D,\text{profile}}$ at Reynolds numbers of
+$2.1 \times 10^5$--$3.1 \times 10^5$.
+The 3D wing $C_{L,\text{max}} = 0.915$ was verified via lifting-line analysis.
+
+\subsection{Propulsion Sizing}
+
+Motor and propeller selection was driven by the static thrust requirement
+($T_{\text{static}} \geq T/W \cdot W_0 \approx 12.7$\,N).
+An APC 10$\times$4.5 MR propeller on a 1100\,KV motor at 11.1\,V produces
+$T_{\text{static}} = 15.6$\,N at $I_{\text{static}} = 26.7$\,A,
+below the 35\,A ESC limit.
+The motor--propeller torque balance was solved numerically using APC tabulated
+performance data across the full flight speed envelope.
+
+\section{Detail Design Phase}
+
+\subsection{Aerodynamics}
+
+Panel aerodynamics and lift distribution were computed using AVL (Athena Vortex
+Lattice). Key cruise aerodynamic coefficients:
+
+\begin{table}[H]
+\centering
+\caption{Cruise Aerodynamic Performance at $V = 20$\,m/s}
+\small
+\begin{tabular}{lll}
+\toprule
+Parameter & Value & \\
+\midrule
+$C_{D,0}$ (total) & 0.0183 & (wing 0.0127, fuse 0.0040, fins 0.0016) \\
+$C_L$ (cruise) & 0.350 & \\
+$\alpha$ (cruise) & 2.46 & deg \\
+$L/D$ (cruise) & 14.34 & \\
+$(L/D)_{\text{max}}$ & 16.57 & \\
+$C_{L,\alpha}$ (3D) & 0.090 & /deg \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The elevon chord fraction of 45\% and span $\eta = 0.60$--$0.95$ was set by the
+hinge-moment constraint: the SG90 servo (0.177\,N$\cdot$m stall torque) is loaded
+to 40\% capacity at maximum 20$^\circ$ deflection.
+
+\subsection{Structural Design}
+
+The primary structural member is a 10\,mm-diameter carbon fiber spar tube
+that carries the full bending moment at the root. At the 2.0$g$ design load
+with a safety factor of 2.0, the required spar diameter is 6.36\,mm;
+the 10\,mm tube provides a bending factor of safety of 182 and a predicted
+wingtip deflection of 0.5\,mm (0.03\% semispan). The wing skin uses 3\,mm
+foam composite sheeting. The fuselage is a 0.95\,m monolithic foam-core
+shell shaped to the MH95 cross-section; its CAD-estimated mass is 1135\,g.
+
+\subsection{Stability and Control}
+
+\textbf{Static Stability.}
+The neutral point was computed by AVL. The CG is located at 16.7\%\,MAC (loaded),
+giving SM = 11.05\%\,MAC, satisfying the $\geq 5\%$ requirement with margin.
+
+\textbf{Longitudinal Dynamic Modes.}
+\begin{itemize}\itemsep0pt
+  \item Short period: $\omega_n = 9.0$\,rad/s, $\zeta = 0.46$ — well-damped, satisfactory.
+  \item Phugoid: $\omega_n = 0.42$\,rad/s, $\zeta = -0.031$ — slightly unstable;
+    time to double amplitude $\approx 25$\,s, easily controlled by pilot-in-the-loop.
+\end{itemize}
+
+\textbf{Lateral-Directional Modes.}
+\begin{itemize}\itemsep0pt
+  \item Dutch roll: $\omega_n = 5.3$\,rad/s, $\zeta = 0.091$ — marginally damped.
+    The twin winglet fins provide $C_{n\beta} = 0.038$/rad (positive directional stability).
+    Active rudder deflection up to $\delta_r = 25^\circ$ trims up to $\beta = 8.6^\circ$
+    of sideslip.
+  \item Aileron roll rate at $\delta_a = 20^\circ$: 238\,deg/s — aggressive authority.
+\end{itemize}
+
+\textbf{Control Surfaces.}
+Elevons (pitch + roll) and twin rudders (yaw) are each driven by SG90 servos
+confirmed within torque limits:
+elevon HM = 0.070\,N$\cdot$m (40\% of capacity),
+rudder HM = 0.022\,N$\cdot$m (13\% of capacity).
+Trim elevon deflection at cruise is $\delta_e = +3.68^\circ$ (trailing-edge down).
+
+\subsection{Energy and Mission Analysis}
+
+\begin{table}[H]
+\centering
+\caption{Mission Energy Budget}
+\small
+\begin{tabular}{lll}
+\toprule
+Segment & Energy & Notes \\
+\midrule
+Climb & 4113\,J (1.14\,Wh) & $V_{\text{climb}} = 11$\,m/s, $\gamma = 6^\circ$ \\
+Cruise & 55293\,J (15.36\,Wh) & 1 lap, $V = 20$\,m/s \\
+Total mission & 59406\,J (16.50\,Wh) & \\
+Design (with 15\% reserve) & 68316\,J (18.98\,Wh) & 28\% margin above mission \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Economics}
+
+The profit function uses the course-defined scoring:
+$J = 11.04$\,\$/hr at 800\,g payload, $W_g = 2750$\,g.
+The unconstrained optimum is \$12.83/hr at 1200\,g payload; the 800\,g selection
+trades \$1.79/hr for 2.9\% additional static margin, justified by prototype safety
+during the initial test campaign.
+
+\section{Component Fabrication Plan}
+
+\begin{table}[H]
+\centering
+\caption{Component Fabrication Summary}
+\small
+\begin{tabular}{lll}
+\toprule
+Component & Method & Material \\
+\midrule
+Fuselage/centerbody & CNC hot-wire + foam carving & EPS foam, fiberglass skin \\
+Wing panels & Foam sheeting + rib alignment & 3\,mm XPS foam, CF tape LE \\
+Main spar & COTS tube & 10\,mm OD carbon fiber \\
+Winglet fins & Foam cut to profile & 3\,mm XPS foam \\
+Servos (5$\times$) & COTS & SG90, 9\,g \\
+Motor mount & 3D printed & PLA/PETG \\
+Cargo bay & Foam lined cavity & EPS w/ foam lid \\
+Landing gear & Bent wire + foam skid & Music wire + EPS \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Key fabrication sequences: (1) cut and assemble foam fuselage shell;
+(2) insert 10\,mm spar through fuselage spar tunnel;
+(3) attach wing panels and verify CG at $x = 0.337$\,m from motor;
+(4) install servos, receiver, and ESC;
+(5) balance battery to $x = 0.61$\,m to achieve $\text{SM} = 11\%$.
+A static weight-and-balance check before first flight will confirm CG
+within 14--20\%\,MAC.
+
+%% ----------------------------------------------------------------
+%% REFERENCES
+%% ----------------------------------------------------------------
+\section*{References}
+
+\begin{enumerate}\itemsep0pt
+  \item Drela, M. and Youngren, H., \textit{AVL 3.36 User Primer}, MIT, 2017.
+  \item Selig, M.S., \textit{UIUC Airfoil Database}, University of Illinois, 1995.
+  \item APC Propellers, \textit{Performance Data Files --- PER3\_10x45MR}, Landing Products, 2023.
+  \item Raymer, D.P., \textit{Aircraft Design: A Conceptual Approach}, 6th ed., AIAA, 2018.
+  \item MAE 155B Course Slides, UCSD, Spring 2026 (Sizing, Stability, Propulsion).
+\end{enumerate}
+
+%% ----------------------------------------------------------------
+%% APPENDIX
+%% ----------------------------------------------------------------
+\appendix
+\section{Profit Optimization Sensitivity}
+
+\begin{table}[H]
+\centering
+\caption{Profit vs. Payload at Constant Geometry ($b = 1.572$\,m, $AR = 8$)}
+\small
+\begin{tabular}{cccc}
+\toprule
+Payload (g) & $J$ (\$/hr) & SM (\% MAC) & Note \\
+\midrule
+600 & 8.92 & 12.1 & Under-payload \\
+800 & 11.04 & 9.2 & \textbf{Selected} \\
+1000 & 11.87 & 7.1 & Acceptable SM \\
+1200 & 12.83 & 5.0 & Optimizer optimum \\
+1400 & 13.31 & 2.4 & SM constraint violated \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Control Derivative Summary (AVL)}
+
+\begin{table}[H]
+\centering
+\caption{AVL Stability and Control Derivatives at Cruise}
+\small
+\begin{tabular}{llll}
+\toprule
+Derivative & Value & Units & Notes \\
+\midrule
+$C_{L\alpha}$ & 0.0902 & /deg & 3D lifting line \\
+$C_{m\alpha}$ & $-0.338$ & /rad & Pitch stiffness (stable) \\
+$C_{n\beta}$ & 0.038 & /rad & Directional stability (stable) \\
+$C_{l\delta_a}$ & 0.0062 & /deg & Aileron roll effectiveness \\
+$C_{n\delta_r}$ & 0.000287 & /deg & Rudder yaw effectiveness \\
+$C_{l p}$ & $-0.496$ & /rad & Roll damping \\
+$C_{m q}$ & $-4.06$ & /rad & Pitch damping \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
